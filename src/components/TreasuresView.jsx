@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import QuestList from './QuestList'
 import BonusCard from './BonusCard'
 import PawMark from './PawMark'
@@ -11,6 +11,11 @@ export default function TreasuresView() {
   const [treasures, setTreasures] = useState([])
   const [openDate, setOpenDate] = useState(null)
 
+  // Newest quest array per date, updated synchronously on click, so two
+  // quick ticks on the same day don't both read the same stale row and
+  // undo one another. (See the matching note in TodayView.)
+  const questsByDate = useRef(new Map())
+
   useEffect(() => {
     let cancelled = false
     async function load() {
@@ -18,7 +23,9 @@ export default function TreasuresView() {
       setError(null)
       try {
         const rows = await getAllCollectedTreasures()
-        if (!cancelled) setTreasures(rows)
+        if (cancelled) return
+        questsByDate.current = new Map(rows.map((r) => [r.date, r.quests]))
+        setTreasures(rows)
       } catch (err) {
         if (!cancelled) setError(err.message ?? 'Could not load your treasures.')
       } finally {
@@ -32,16 +39,11 @@ export default function TreasuresView() {
   }, [])
 
   async function handleToggleQuest(date, index) {
-    setTreasures((prev) =>
-      prev.map((t) =>
-        t.date !== date
-          ? t
-          : { ...t, quests: t.quests.map((q, i) => (i === index ? { ...q, done: !q.done } : q)) }
-      )
-    )
-    const row = treasures.find((t) => t.date === date)
-    if (!row) return
-    const nextQuests = row.quests.map((q, i) => (i === index ? { ...q, done: !q.done } : q))
+    const base = questsByDate.current.get(date)
+    if (!base) return
+    const nextQuests = base.map((q, i) => (i === index ? { ...q, done: !q.done } : q))
+    questsByDate.current.set(date, nextQuests)
+    setTreasures((prev) => prev.map((t) => (t.date === date ? { ...t, quests: nextQuests } : t)))
     try {
       await updateCollectedQuests(date, nextQuests)
     } catch (err) {

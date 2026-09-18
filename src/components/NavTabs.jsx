@@ -1,7 +1,9 @@
+// "Plan Ahead" deliberately isn't here -- the planner is hidden behind the
+// passcode (see src/lib/adminAccess.js) so visitors only ever see the two
+// read-and-tick tabs.
 const TABS = [
   { id: 'today', label: 'Today' },
   { id: 'treasures', label: 'My Treasures' },
-  { id: 'plan', label: 'Plan Ahead' },
 ]
 
 export default function NavTabs({ current, onChange }) {

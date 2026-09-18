@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Chest from './Chest'
 import QuestList from './QuestList'
 import BonusCard from './BonusCard'
@@ -11,7 +11,18 @@ export default function TodayView() {
   const [planned, setPlanned] = useState(null) // row from daily_content, if any
   const [treasure, setTreasure] = useState(null) // row from collected_treasures, once opened
 
+  // Two quick taps on different quests used to race: both read the same
+  // pre-render `treasure`, so the second write clobbered the first. This
+  // ref always holds the newest quest array, updated synchronously on
+  // click, so rapid ticks chain instead of overwriting each other.
+  const questsRef = useRef(null)
+
   const date = todayISO()
+
+  function adopt(row) {
+    questsRef.current = row?.quests ?? null
+    setTreasure(row)
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -22,7 +33,7 @@ export default function TodayView() {
         const already = await getCollectedTreasure(date)
         if (cancelled) return
         if (already) {
-          setTreasure(already)
+          adopt(already)
         } else {
           const content = await getDailyContent(date)
           if (!cancelled) setPlanned(content)
@@ -40,7 +51,7 @@ export default function TodayView() {
   }, [date])
 
   async function handleOpen() {
-    if (!planned) return
+    if (!planned || treasure) return
     try {
       const saved = await collectTreasure({
         date,
@@ -48,16 +59,28 @@ export default function TodayView() {
         bonus_type: planned.bonus_type,
         bonus: planned.bonus,
       })
-      setTreasure(saved)
+      adopt(saved)
     } catch (err) {
+      // 23505 = today's row already exists, e.g. the chest was opened in
+      // another tab. Show that chest rather than an error.
+      if (err?.code === '23505') {
+        try {
+          const existing = await getCollectedTreasure(date)
+          if (existing) return adopt(existing)
+        } catch {
+          /* fall through to the message below */
+        }
+      }
       setError(err.message ?? 'Could not open the chest just now.')
     }
   }
 
   async function handleToggleQuest(index) {
-    if (!treasure) return
-    const nextQuests = treasure.quests.map((q, i) => (i === index ? { ...q, done: !q.done } : q))
-    setTreasure({ ...treasure, quests: nextQuests })
+    const base = questsRef.current
+    if (!base) return
+    const nextQuests = base.map((q, i) => (i === index ? { ...q, done: !q.done } : q))
+    questsRef.current = nextQuests
+    setTreasure((prev) => (prev ? { ...prev, quests: nextQuests } : prev))
     try {
       await updateCollectedQuests(date, nextQuests)
     } catch (err) {
@@ -84,11 +107,9 @@ export default function TodayView() {
 
             {error && <p className="view__error">{error}</p>}
 
+            {/* No pointer to the planner here -- visitors can't see it. */}
             {status === 'empty' && !error && (
-              <p className="view__note">
-                You haven't planned anything for today yet — add it from the{' '}
-                <em>Plan Ahead</em> tab.
-              </p>
+              <p className="view__note">Nothing's been planned for today yet.</p>
             )}
           </div>
 

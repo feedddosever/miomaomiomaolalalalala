@@ -13,9 +13,42 @@ edit days without redeploying.
   automatically.
 - **My Treasures** — every day you've opened, in one place, with your
   check-offs preserved.
-- **Plan Ahead** — a form to set each date's quests and bonus (recipe or
-  Instagram link) ahead of time, plus a list of everything already
-  planned, with edit/delete.
+- **The planner** — hidden. Visitors only ever see the two tabs above;
+  there's no third tab and no planner markup on the page. You reach it
+  with your passcode (see below), and it then takes over the whole page
+  rather than sitting in the nav. It's a form to set each date's quests
+  and bonus (recipe or Instagram link) ahead of time, plus a list of
+  everything already planned, with edit/delete.
+
+## Getting into the planner
+
+Three ways in, so it works whatever you're holding:
+
+| Where | What to do |
+| --- | --- |
+| Computer | Just type the passcode anywhere on the page. Nothing to click first, and nothing shows while you type. |
+| Anywhere | Add `#plan` to the URL, then enter the passcode. Bookmarkable. |
+| Phone | Tap the little ears beside the title five times quickly, then enter the passcode. |
+
+"Hide planner" in the top right puts it away again. An unlock lasts until
+you close the tab.
+
+The passcode is `VITE_ADMIN_PASSCODE`. **If you don't set it, it's
+`meow`** — the planner warns you on screen while that's the case. Set
+your own in `.env.local` and in Vercel's environment variables.
+
+> **What this does and doesn't do.** This keeps the planner out of sight,
+> which is the point — nobody you share the link with will stumble into
+> your calendar and start editing it. It is *not* a security boundary.
+> Like any browser-only app, the Supabase anon key ships inside the page,
+> and the table policies below accept that key, so someone who dug
+> through the JavaScript could still write to the tables directly. The
+> passcode never leaves the browser and isn't checked by the database.
+>
+> If that ever matters, the real fix is the one in the note further down:
+> turn on Supabase email/password auth, log in on the planner, and scope
+> the row-level-security policies to your user id instead of `true`. Then
+> the database enforces it, not the UI.
 
 ## 1. The database is already set up ✅
 
@@ -93,23 +126,23 @@ exist yet, create it first at
    copying the values straight out of your local `.env.local`:
    - `VITE_SUPABASE_URL` → `https://itxitfhvxxafknfevjhz.supabase.co`
    - `VITE_SUPABASE_ANON_KEY` → (the long key in `.env.local`)
-   - `VITE_ADMIN_PASSCODE` → optional; set it if you want the Plan Ahead
-     tab behind a passcode
+   - `VITE_ADMIN_PASSCODE` → your planner passcode. Optional, but if you
+     leave it out the planner falls back to `meow`, so set it.
 4. Click **Deploy**. Once it finishes, your chest is live at the
    `*.vercel.app` URL Vercel gives you.
 
 Without these two variables the deployed site will build fine but show
 the "Supabase isn't connected yet" message instead of the chest.
 
-Any time you edit `daily_content` from the "Plan Ahead" tab, that's a
-database write, not a code change — no redeploy needed. You only need to
+Any time you edit `daily_content` from the planner, that's a database
+write, not a code change — no redeploy needed. You only need to
 redeploy if you change the app's code itself.
 
 ## On phones and on a computer
 
 The same page adapts to whatever you're holding:
 
-- **Phones** get a single column, three equal nav tabs that don't wrap,
+- **Phones** get a single column, two equal nav tabs that don't wrap,
   and touch targets of at least 44px everywhere (the paw check-offs have
   an invisible 40px hit area around them, so a thumb can't miss). Form
   fields are set to exactly 16px, which is what stops iOS Safari from
@@ -121,7 +154,7 @@ The same page adapts to whatever you're holding:
   back to content-width pills.
 - **Laptops and desktops** (from 900px) get real use of the width: Today
   puts the chest beside the quests instead of above them, My Treasures
-  becomes a two-up shelf, and Plan Ahead shows the form and the planned
+  becomes a two-up shelf, and the planner shows the form and the planned
   days side by side so you can see what's scheduled while you type. At
   1280px and up the shell widens again, the chest grows, and the shelf
   goes three across. Hover styling is applied only on devices with a real
@@ -145,6 +178,9 @@ near the bottom.
 - **The chest illustration** (cat ears, whiskers, paw-print latch) is
   a hand-built SVG in `src/components/Chest.jsx` if you want to tweak
   its shape or add more cat details.
+- **The way into the planner** (the typed passcode, the `#plan` hash,
+  the five-tap counter) is all in `src/lib/adminAccess.js` — change the
+  hash, the tap count or the timing there.
 - **Bonus shape**: a recipe bonus is `{ title, ingredients: [...],
   instructions: [...] }`; an Instagram bonus is `{ url, caption }`.
   Both are stored as-is in the `bonus` jsonb column.

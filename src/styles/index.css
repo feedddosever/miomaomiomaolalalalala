@@ -130,6 +130,11 @@ label {
   height: clamp(24px, 6vw, 30px);
   fill: var(--caramel-deep);
   flex-shrink: 0;
+  /* Deliberately no pointer cursor -- this is a hidden control, and five
+     quick taps shouldn't leave it looking selected. */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .app-header h1 {
@@ -488,6 +493,10 @@ label {
   transition: fill 0.15s ease, transform 0.15s ease;
 }
 
+.paw-mark--filled {
+  color: var(--caramel-deep);
+}
+
 .quest-item--done .quest-check {
   color: var(--caramel-deep);
 }
@@ -822,9 +831,44 @@ textarea {
   flex-shrink: 0;
 }
 
+/* ---------- planner: the hidden page ---------- */
+
+.planner-bar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.planner-bar__label {
+  font-family: var(--font-display);
+  font-style: italic;
+  color: var(--mocha-soft);
+}
+
+.planner-notice {
+  width: 100%;
+  margin: 0;
+  background: #fff4e0;
+  border: 1px solid var(--parchment-edge);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  color: var(--mocha-soft);
+}
+
+.planner-notice code {
+  background: var(--parchment);
+  padding: 1px 6px;
+  border-radius: 5px;
+  font-size: 0.9em;
+  overflow-wrap: anywhere;
+}
+
 /* ---------- passcode gate ---------- */
 
-.view--plan-gate {
+.view--gate {
   margin-top: 30px;
 }
 
@@ -838,11 +882,27 @@ textarea {
   padding: 24px 20px;
 }
 
+.gate-form__title {
+  font-size: 1.1rem;
+}
+
+.gate-form p {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--mocha-soft);
+}
+
 .gate-form input {
   margin: 14px 0;
 }
 
-.gate-form .btn {
+.gate-form__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gate-form__actions .btn {
   width: 100%;
 }
 
@@ -956,13 +1016,18 @@ textarea {
     grid-column: 1 / -1;
   }
 
-  /* Plan Ahead: form on the left, the planned days beside it, so you can
+  /* Planner: form on the left, the planned days beside it, so you can
      see what's already scheduled while you type the next one. */
   .view--plan {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     align-items: start;
     gap: 22px;
+  }
+
+  .planner-bar,
+  .planner-notice {
+    grid-column: 1 / -1;
   }
 
   .plan-form,

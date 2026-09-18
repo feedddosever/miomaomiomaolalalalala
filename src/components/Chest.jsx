@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 
 /**
  * status: 'empty'  -> nothing planned for this date, chest is dim & inert
@@ -7,11 +7,6 @@ import { useEffect, useRef, useState } from 'react'
  */
 export default function Chest({ status, onOpen }) {
   const [burst, setBurst] = useState(false)
-  const wasClosed = useRef(status === 'closed')
-
-  useEffect(() => {
-    wasClosed.current = status === 'closed'
-  }, [status])
 
   function handleClick() {
     if (status !== 'closed') return

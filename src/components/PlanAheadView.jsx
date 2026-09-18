@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getAllDailyContent, upsertDailyContent, deleteDailyContent } from '../lib/api'
 import { toShort, todayISO } from '../lib/date'
-
-const ADMIN_PASSCODE = import.meta.env.VITE_ADMIN_PASSCODE
-const GATE_KEY = 'daily-chest-plan-unlocked'
+import { USING_DEFAULT_PASSCODE } from '../lib/adminAccess'
 
 const emptyForm = {
   date: '',
@@ -51,13 +49,7 @@ function formToEntry(form) {
   }
 }
 
-export default function PlanAheadView() {
-  const [unlocked, setUnlocked] = useState(
-    !ADMIN_PASSCODE || sessionStorage.getItem(GATE_KEY) === 'yes'
-  )
-  const [passInput, setPassInput] = useState('')
-  const [passError, setPassError] = useState(false)
-
+export default function PlanAheadView({ onClose }) {
   const [entries, setEntries] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -78,20 +70,11 @@ export default function PlanAheadView() {
   }
 
   useEffect(() => {
-    if (unlocked) refresh()
-  }, [unlocked])
+    refresh()
+  }, [])
 
-  const upcoming = useMemo(() => entries.slice().reverse(), [entries])
-
-  function handleUnlock(e) {
-    e.preventDefault()
-    if (passInput === ADMIN_PASSCODE) {
-      sessionStorage.setItem(GATE_KEY, 'yes')
-      setUnlocked(true)
-    } else {
-      setPassError(true)
-    }
-  }
+  // getAllDailyContent sorts oldest first; show the newest at the top.
+  const newestFirst = useMemo(() => entries.slice().reverse(), [entries])
 
   function updateQuestLine(i, value) {
     setForm((f) => ({
@@ -145,31 +128,22 @@ export default function PlanAheadView() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  if (!unlocked) {
-    return (
-      <section className="view view--plan-gate">
-        <form className="gate-form" onSubmit={handleUnlock}>
-          <p>This corner is just for planning ahead — enter your passcode.</p>
-          <input
-            type="password"
-            value={passInput}
-            onChange={(e) => {
-              setPassInput(e.target.value)
-              setPassError(false)
-            }}
-            placeholder="Passcode"
-          />
-          {passError && <p className="view__error">That's not it — try again.</p>}
-          <button type="submit" className="btn btn--primary">
-            Unlock
-          </button>
-        </form>
-      </section>
-    )
-  }
-
   return (
     <section className="view view--plan">
+      <div className="planner-bar">
+        <span className="planner-bar__label">Planner</span>
+        <button type="button" className="btn btn--ghost btn--small" onClick={onClose}>
+          Hide planner
+        </button>
+      </div>
+
+      {USING_DEFAULT_PASSCODE && (
+        <p className="planner-notice">
+          You're using the default passcode. Set <code>VITE_ADMIN_PASSCODE</code> in{' '}
+          <code>.env.local</code> (and in Vercel) to pick your own.
+        </p>
+      )}
+
       <form className="plan-form" onSubmit={handleSubmit}>
         <h2 className="plan-form__title">
           {entries.some((en) => en.date === form.date) ? 'Edit a day' : 'Plan a day'}
@@ -296,11 +270,11 @@ export default function PlanAheadView() {
         <h2 className="plan-list__title">Planned days</h2>
         {loading ? (
           <p className="view__loading">Loading…</p>
-        ) : upcoming.length === 0 ? (
+        ) : newestFirst.length === 0 ? (
           <p className="view__note">No days planned yet.</p>
         ) : (
           <ul>
-            {upcoming.map((entry) => (
+            {newestFirst.map((entry) => (
               <li key={entry.date} className="plan-list__row">
                 <span className="plan-list__date">{toShort(entry.date)}</span>
                 <span className="plan-list__meta">

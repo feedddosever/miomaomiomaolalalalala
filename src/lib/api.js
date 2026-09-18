@@ -57,12 +57,23 @@ export async function getAllCollectedTreasures() {
   return data ?? []
 }
 
+// daily_content.quests holds plain strings, but a row hand-edited in the
+// Supabase dashboard could already hold {text, done} objects. Accept both
+// rather than writing a treasure whose text is an object.
+function toQuestRows(quests) {
+  return (quests ?? []).map((q) =>
+    typeof q === 'string'
+      ? { text: q, done: false }
+      : { text: q?.text ?? String(q), done: Boolean(q?.done) }
+  )
+}
+
 export async function collectTreasure({ date, quests, bonus_type, bonus }) {
   const { data, error } = await supabase
     .from('collected_treasures')
     .insert({
       date,
-      quests: quests.map((text) => ({ text, done: false })),
+      quests: toQuestRows(quests),
       bonus_type,
       bonus,
     })
