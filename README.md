@@ -105,6 +105,36 @@ Any time you edit `daily_content` from the "Plan Ahead" tab, that's a
 database write, not a code change — no redeploy needed. You only need to
 redeploy if you change the app's code itself.
 
+## On phones and on a computer
+
+The same page adapts to whatever you're holding:
+
+- **Phones** get a single column, three equal nav tabs that don't wrap,
+  and touch targets of at least 44px everywhere (the paw check-offs have
+  an invisible 40px hit area around them, so a thumb can't miss). Form
+  fields are set to exactly 16px, which is what stops iOS Safari from
+  zooming the page in the moment you tap one. The layout also pads
+  around notches and home indicators.
+- **Turn a phone sideways** and the chest shrinks and moves next to the
+  quests, so the list stays on screen in a short landscape window.
+- **Tablets** (from 600px) get roomier padding and the nav tabs shrink
+  back to content-width pills.
+- **Laptops and desktops** (from 900px) get real use of the width: Today
+  puts the chest beside the quests instead of above them, My Treasures
+  becomes a two-up shelf, and Plan Ahead shows the form and the planned
+  days side by side so you can see what's scheduled while you type. At
+  1280px and up the shell widens again, the chest grows, and the shelf
+  goes three across. Hover styling is applied only on devices with a real
+  pointer, so phones never get stuck in a hover state.
+
+Keyboard navigation is covered too — every control has a visible focus
+ring — and the chest animation and sparkles are dropped for anyone with
+"reduce motion" turned on.
+
+Breakpoints, touch-target sizes and the layout switches all live in
+`src/styles/index.css`, grouped under the `responsive:` comment banners
+near the bottom.
+
 ## Customizing
 
 - **Colors** live as CSS variables at the top of

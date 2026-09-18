@@ -49,8 +49,21 @@ export default function TreasuresView() {
     }
   }
 
-  if (loading) return <p className="view__loading">Gathering your treasures…</p>
-  if (error) return <p className="view__error">{error}</p>
+  if (loading) {
+    return (
+      <section className="view view--treasures">
+        <p className="view__loading">Gathering your treasures…</p>
+      </section>
+    )
+  }
+
+  if (error) {
+    return (
+      <section className="view view--treasures">
+        <p className="view__error">{error}</p>
+      </section>
+    )
+  }
 
   if (treasures.length === 0) {
     return (
@@ -67,7 +80,12 @@ export default function TreasuresView() {
           const isOpen = openDate === t.date
           const doneCount = t.quests.filter((q) => q.done).length
           return (
-            <li key={t.date} className="treasure-shelf__item">
+            <li
+              key={t.date}
+              className={`treasure-shelf__item ${
+                isOpen ? 'treasure-shelf__item--open' : ''
+              }`}
+            >
               <button
                 type="button"
                 className="treasure-badge"

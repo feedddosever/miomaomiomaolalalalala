@@ -12,6 +12,16 @@
 
   --font-display: 'Fraunces', 'Iowan Old Style', serif;
   --font-body: 'Outfit', 'Segoe UI', sans-serif;
+
+  /* Layout knobs. The shell widens at each breakpoint (see the bottom of
+     this file); individual views cap their own reading width so the text
+     never stretches into an unreadable line on a big monitor. */
+  --shell-max: 560px;
+  --gutter: 16px;
+
+  /* Minimum comfortable touch target. Everything tappable is at least
+     this big on phones, even when the visible ink is smaller. */
+  --tap: 44px;
 }
 
 * {
@@ -24,11 +34,24 @@ body {
   padding: 0;
 }
 
+html {
+  /* Stops iOS/Android from inflating text when the phone is rotated. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  color-scheme: light;
+}
+
 body {
   background: radial-gradient(circle at 20% -10%, #fffaf1 0%, var(--cream) 45%, #f6e6cd 100%);
+  /* Deliberately NOT background-attachment: fixed -- it leaves the area
+     below the first screenful unpainted on long pages and stutters badly
+     when scrolling on iOS Safari. */
+  min-height: 100%;
   color: var(--mocha);
   font-family: var(--font-body);
+  font-size: 1rem;
   -webkit-font-smoothing: antialiased;
+  overflow-wrap: break-word;
 }
 
 h1,
@@ -39,6 +62,7 @@ h4 {
   color: var(--mocha);
   margin: 0 0 0.4em;
   font-weight: 600;
+  text-wrap: balance;
 }
 
 p {
@@ -47,17 +71,50 @@ p {
 
 button,
 input,
-textarea {
+textarea,
+select {
   font-family: inherit;
+}
+
+/* Kill the 300ms double-tap delay and the grey flash on Android/iOS. */
+button,
+a,
+[role='button'],
+label {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* One consistent keyboard focus ring for the whole app. Uses
+   :focus-visible so it only shows for keyboard/AT users, never on tap. */
+:focus-visible {
+  outline: 3px solid var(--caramel-deep);
+  outline-offset: 2px;
 }
 
 /* ---------- shell ---------- */
 
 .app-shell {
-  max-width: 560px;
+  width: 100%;
+  max-width: var(--shell-max);
   margin: 0 auto;
-  padding: 28px 20px 60px;
+  /* svh keeps the page from jumping as mobile browser chrome hides. */
   min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  padding: 24px var(--gutter) 40px;
+  /* Respect notches and home indicators on phones. */
+  padding-left: max(var(--gutter), env(safe-area-inset-left));
+  padding-right: max(var(--gutter), env(safe-area-inset-right));
+  padding-bottom: calc(40px + env(safe-area-inset-bottom));
+}
+
+.app-main {
+  /* Pushes the footer to the bottom on short pages instead of leaving it
+     stranded halfway up a tall desktop window. */
+  flex: 1 0 auto;
+  width: 100%;
 }
 
 .app-header {
@@ -65,19 +122,20 @@ textarea {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  margin-bottom: 22px;
+  margin-bottom: 20px;
 }
 
 .app-header__mark {
-  width: 26px;
-  height: 26px;
+  width: clamp(24px, 6vw, 30px);
+  height: clamp(24px, 6vw, 30px);
   fill: var(--caramel-deep);
   flex-shrink: 0;
 }
 
 .app-header h1 {
-  font-size: 1.6rem;
+  font-size: clamp(1.45rem, 1.2rem + 1.2vw, 2rem);
   letter-spacing: 0.01em;
+  margin: 0;
 }
 
 .app-footer {
@@ -104,6 +162,7 @@ textarea {
   padding: 1px 6px;
   border-radius: 5px;
   font-size: 0.85em;
+  overflow-wrap: anywhere;
 }
 
 /* ---------- nav ---------- */
@@ -112,17 +171,23 @@ textarea {
   display: flex;
   gap: 8px;
   justify-content: center;
-  margin-bottom: 28px;
-  flex-wrap: wrap;
+  margin-bottom: 24px;
 }
 
 .nav-tab {
+  /* On phones the three tabs share the row evenly so none of them wrap,
+     even at 320px. They shrink back to content-width pills on wider
+     screens (see the >=600px block). */
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: var(--tap);
   border: 1px solid var(--parchment-edge);
   background: transparent;
   color: var(--mocha-soft);
-  padding: 9px 18px;
+  padding: 9px 10px;
   border-radius: 999px;
-  font-size: 0.92rem;
+  font-size: clamp(0.82rem, 0.6rem + 1.1vw, 0.95rem);
+  line-height: 1.2;
   cursor: pointer;
   transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
@@ -133,11 +198,6 @@ textarea {
   color: var(--cream);
 }
 
-.nav-tab:not(.nav-tab--active):hover {
-  border-color: var(--caramel);
-  color: var(--mocha);
-}
-
 /* ---------- generic view bits ---------- */
 
 .view {
@@ -145,6 +205,7 @@ textarea {
   flex-direction: column;
   align-items: center;
   gap: 8px;
+  width: 100%;
 }
 
 .view__eyebrow {
@@ -152,13 +213,15 @@ textarea {
   font-style: italic;
   color: var(--mocha-soft);
   margin: 0 0 4px;
+  text-align: center;
 }
 
 .view__note,
 .view__loading {
   text-align: center;
   color: var(--mocha-soft);
-  max-width: 34ch;
+  max-width: 40ch;
+  margin-inline: auto;
 }
 
 .view__error {
@@ -167,6 +230,29 @@ textarea {
   background: #fbe7e2;
   border-radius: 10px;
   padding: 8px 14px;
+  max-width: 44ch;
+  margin-inline: auto;
+}
+
+/* ---------- today layout ---------- */
+
+.today-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.today-layout__chest {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.today-layout__panel {
+  width: 100%;
 }
 
 /* ---------- chest ---------- */
@@ -174,7 +260,7 @@ textarea {
 .chest-stage {
   position: relative;
   width: 100%;
-  max-width: 300px;
+  max-width: clamp(240px, 72vw, 300px);
   margin: 10px auto 4px;
 }
 
@@ -183,6 +269,15 @@ textarea {
   height: auto;
   overflow: visible;
   cursor: pointer;
+  /* Repeated tapping shouldn't start selecting the surrounding text. */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.chest:focus-visible {
+  outline: 3px solid var(--caramel-deep);
+  outline-offset: 6px;
+  border-radius: 20px;
 }
 
 .chest-stage--empty .chest,
@@ -313,16 +408,6 @@ textarea {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .chest__lid {
-    transition: none;
-  }
-  .sparkle {
-    animation: none;
-    opacity: 0;
-  }
-}
-
 /* ---------- reveal card ---------- */
 
 .reveal {
@@ -330,14 +415,15 @@ textarea {
   background: var(--parchment);
   border: 1px solid var(--parchment-edge);
   border-radius: 18px;
-  padding: 22px 22px 24px;
+  padding: 20px 18px 22px;
   margin-top: 18px;
   box-shadow: 0 10px 28px var(--shadow);
+  min-width: 0;
 }
 
 .reveal--compact {
   margin-top: 12px;
-  padding: 16px 18px 18px;
+  padding: 16px 16px 18px;
 }
 
 .reveal__title {
@@ -351,27 +437,54 @@ textarea {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  /* 12px gap + a 28px row keeps neighbouring 40px touch targets from
+     overlapping, so a fat-fingered tap can't tick the wrong quest. */
+  gap: 12px;
 }
 
 .quest-item {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: 12px;
+  min-height: 28px;
 }
 
 .quest-check {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
   border: none;
   background: none;
-  padding: 2px;
+  padding: 0;
   cursor: pointer;
   color: var(--parchment-edge);
   flex-shrink: 0;
   line-height: 0;
+  border-radius: 50%;
+}
+
+/* Invisible 40x40 hit area centred on the paw: bigger thumb target
+   without changing how the row looks or lays out. */
+.quest-check::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 40px;
+  height: 40px;
+  transform: translate(-50%, -50%);
+}
+
+.quest-check:disabled {
+  cursor: default;
 }
 
 .paw-mark {
   fill: currentColor;
+  width: 22px;
+  height: 22px;
   transition: fill 0.15s ease, transform 0.15s ease;
 }
 
@@ -384,7 +497,9 @@ textarea {
 }
 
 .quest-text {
-  padding-top: 1px;
+  padding-top: 3px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .quest-item--done .quest-text {
@@ -399,7 +514,7 @@ textarea {
   background: var(--cream);
   border: 1px dashed var(--parchment-edge);
   border-radius: 14px;
-  padding: 16px 18px;
+  padding: 16px 16px;
 }
 
 .bonus-card__label {
@@ -412,6 +527,7 @@ textarea {
 .bonus-card__title {
   font-size: 1.05rem;
   margin-top: 2px;
+  overflow-wrap: anywhere;
 }
 
 .bonus-card__section h4 {
@@ -425,17 +541,29 @@ textarea {
 .bonus-card__section ol {
   margin: 0;
   padding-left: 1.15em;
+  line-height: 1.55;
+}
+
+.bonus-card__section li {
+  overflow-wrap: anywhere;
+}
+
+.bonus-card__section li + li {
+  margin-top: 4px;
 }
 
 .bonus-card__link {
-  display: inline-block;
-  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  margin-top: 12px;
   color: var(--cream);
   background: var(--dusty-rose);
-  padding: 8px 16px;
+  padding: 8px 20px;
   border-radius: 999px;
   text-decoration: none;
   font-size: 0.9rem;
+  transition: filter 0.15s ease, transform 0.15s ease;
 }
 
 /* ---------- treasures list ---------- */
@@ -445,13 +573,18 @@ textarea {
   margin: 0;
   padding: 0;
   width: 100%;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  /* minmax(0, 1fr) rather than 1fr: a bare 1fr track can't shrink below
+     its content's min-content width, so a single very long unbroken word
+     would widen the shelf and scroll the whole page sideways. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
+  align-content: start;
 }
 
 .treasure-badge {
   width: 100%;
+  min-height: 52px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -462,6 +595,8 @@ textarea {
   cursor: pointer;
   color: var(--mocha);
   text-align: left;
+  font-size: 1rem;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 
 .treasure-badge .paw-mark {
@@ -472,11 +607,14 @@ textarea {
 .treasure-badge__date {
   font-family: var(--font-display);
   flex-grow: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .treasure-badge__count {
   font-size: 0.82rem;
   color: var(--mocha-soft);
+  flex-shrink: 0;
 }
 
 /* ---------- forms (plan ahead) ---------- */
@@ -487,7 +625,7 @@ textarea {
   background: var(--parchment);
   border: 1px solid var(--parchment-edge);
   border-radius: 18px;
-  padding: 20px 20px 22px;
+  padding: 20px 18px 22px;
   margin-top: 14px;
 }
 
@@ -498,14 +636,14 @@ textarea {
 
 .field {
   display: block;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .field > span {
   display: block;
   font-size: 0.85rem;
   color: var(--mocha-soft);
-  margin-bottom: 5px;
+  margin-bottom: 6px;
 }
 
 input[type='text'],
@@ -514,46 +652,102 @@ input[type='url'],
 input[type='password'],
 textarea {
   width: 100%;
+  min-height: var(--tap);
   border: 1px solid var(--parchment-edge);
   background: var(--cream);
   border-radius: 10px;
-  padding: 9px 12px;
+  padding: 10px 12px;
   color: var(--mocha);
-  font-size: 0.95rem;
+  /* 16px exactly: anything smaller makes iOS Safari zoom the page in
+     when the field is focused, which then never zooms back out. */
+  font-size: 16px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+input[type='text'],
+input[type='url'],
+input[type='password'],
+input[type='date'] {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input:focus,
+textarea:focus {
+  border-color: var(--caramel);
 }
 
 textarea {
   resize: vertical;
+  min-height: 92px;
+  line-height: 1.5;
 }
 
 .quest-input-row {
   display: flex;
-  gap: 6px;
-  margin-bottom: 6px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .quest-input-row input {
   flex-grow: 1;
+  min-width: 0;
+}
+
+/* The "x" remove button: square and thumb-sized next to its input. */
+.quest-input-row .btn {
+  flex: 0 0 auto;
+  width: var(--tap);
+  height: var(--tap);
+  padding: 0;
+  display: grid;
+  place-items: center;
+  font-size: 1.15rem;
+  line-height: 1;
 }
 
 .bonus-toggle {
   display: flex;
-  gap: 18px;
+  flex-wrap: wrap;
+  gap: 8px;
   font-size: 0.92rem;
 }
 
 .bonus-toggle label {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  min-height: var(--tap);
+  padding: 6px 14px 6px 12px;
+  border: 1px solid var(--parchment-edge);
+  border-radius: 999px;
+  background: var(--cream);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.bonus-toggle label:has(input:checked) {
+  border-color: var(--caramel-deep);
+  background: #f7ecda;
+}
+
+.bonus-toggle input[type='radio'] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--caramel-deep);
+  margin: 0;
+  flex-shrink: 0;
 }
 
 .btn {
   border-radius: 999px;
   border: 1px solid transparent;
+  min-height: var(--tap);
   padding: 10px 20px;
-  font-size: 0.92rem;
+  font-size: 0.95rem;
   cursor: pointer;
+  transition: filter 0.15s ease, background 0.15s ease, border-color 0.15s ease;
 }
 
 .btn--primary {
@@ -566,6 +760,11 @@ textarea {
   cursor: default;
 }
 
+.plan-form > .btn--primary {
+  /* Full-width and easy to hit at the end of a long form on a phone. */
+  width: 100%;
+}
+
 .btn--ghost {
   background: transparent;
   border-color: var(--parchment-edge);
@@ -573,8 +772,8 @@ textarea {
 }
 
 .btn--small {
-  padding: 5px 12px;
-  font-size: 0.82rem;
+  padding: 8px 14px;
+  font-size: 0.85rem;
 }
 
 .plan-list ul {
@@ -583,32 +782,44 @@ textarea {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .plan-list__row {
-  display: flex;
+  /* Two rows on a phone (date over meta, actions to the right); one tidy
+     row from 600px up. */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'date actions'
+    'meta actions';
   align-items: center;
-  gap: 10px;
+  column-gap: 10px;
   border-bottom: 1px solid var(--parchment-edge);
-  padding-bottom: 8px;
-  flex-wrap: wrap;
+  padding: 10px 0;
+}
+
+.plan-list__row:last-child {
+  border-bottom: none;
 }
 
 .plan-list__date {
+  grid-area: date;
   font-family: var(--font-display);
-  min-width: 90px;
 }
 
 .plan-list__meta {
+  grid-area: meta;
   color: var(--mocha-soft);
   font-size: 0.85rem;
-  flex-grow: 1;
+  overflow-wrap: anywhere;
 }
 
 .plan-list__actions {
+  grid-area: actions;
   display: flex;
   gap: 6px;
+  flex-shrink: 0;
 }
 
 /* ---------- passcode gate ---------- */
@@ -619,20 +830,291 @@ textarea {
 
 .gate-form {
   width: 100%;
-  max-width: 320px;
+  max-width: 340px;
   text-align: center;
   background: var(--parchment);
   border: 1px solid var(--parchment-edge);
   border-radius: 18px;
-  padding: 24px;
+  padding: 24px 20px;
 }
 
 .gate-form input {
-  margin: 12px 0;
+  margin: 14px 0;
 }
 
-@media (max-width: 420px) {
+.gate-form .btn {
+  width: 100%;
+}
+
+/* ================= responsive: small tablets and up ================= */
+
+@media (min-width: 600px) {
+  :root {
+    --shell-max: 620px;
+    --gutter: 24px;
+  }
+
   .app-shell {
-    padding: 22px 14px 48px;
+    padding-top: 32px;
+  }
+
+  .nav-tabs {
+    /* Back to content-width pills once there's room for them. */
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+  }
+
+  .nav-tab {
+    flex: 0 0 auto;
+    padding: 9px 20px;
+  }
+
+  .reveal {
+    padding: 24px 24px 26px;
+  }
+
+  .bonus-card {
+    padding: 18px 20px;
+  }
+
+  .plan-form,
+  .plan-list {
+    padding: 22px 22px 24px;
+  }
+
+  .plan-form > .btn--primary {
+    width: auto;
+    min-width: 180px;
+  }
+
+  .plan-list__row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: 'date meta actions';
+    column-gap: 14px;
+  }
+
+  .plan-list__date {
+    min-width: 110px;
+  }
+}
+
+/* ================= responsive: laptops and desktops ================= */
+
+@media (min-width: 900px) {
+  :root {
+    --shell-max: 900px;
+    --gutter: 32px;
+  }
+
+  .app-shell {
+    padding-top: 40px;
+    padding-bottom: 48px;
+  }
+
+  .app-header {
+    margin-bottom: 24px;
+  }
+
+  /* Today: the chest sits beside the quests instead of above them, so a
+     wide window shows the whole day at once with no scrolling. */
+  .today-layout {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 44px;
+  }
+
+  .today-layout__chest {
+    flex: 0 0 auto;
+    width: 320px;
+    position: sticky;
+    top: 28px;
+  }
+
+  .today-layout__panel {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 520px;
+  }
+
+  .today-layout__panel .reveal {
+    margin-top: 0;
+  }
+
+  .chest-stage {
+    max-width: 320px;
+  }
+
+  /* Treasures: a two-up shelf, with the day you expand taking the full
+     width so its quests and bonus aren't squeezed into half a column. */
+  .treasure-shelf {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .treasure-shelf__item--open {
+    grid-column: 1 / -1;
+  }
+
+  /* Plan Ahead: form on the left, the planned days beside it, so you can
+     see what's already scheduled while you type the next one. */
+  .view--plan {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+    gap: 22px;
+  }
+
+  .plan-form,
+  .plan-list {
+    margin-top: 0;
+  }
+
+  .plan-list {
+    position: sticky;
+    top: 28px;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+  }
+}
+
+@media (min-width: 1280px) {
+  :root {
+    --shell-max: 1080px;
+  }
+
+  body {
+    font-size: 1.05rem;
+  }
+
+  .today-layout {
+    gap: 64px;
+  }
+
+  .today-layout__chest {
+    width: 360px;
+  }
+
+  .chest-stage {
+    max-width: 360px;
+  }
+
+  .treasure-shelf {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .view--plan {
+    gap: 28px;
+  }
+}
+
+/* ================= phone held sideways ================= */
+
+/* Short landscape viewports: shrink the hero so the quests stay in view. */
+@media (max-height: 520px) and (orientation: landscape) {
+  .app-shell {
+    padding-top: 16px;
+    padding-bottom: 24px;
+  }
+
+  .app-header {
+    margin-bottom: 12px;
+  }
+
+  .nav-tabs {
+    margin-bottom: 16px;
+  }
+
+  .chest-stage {
+    max-width: 200px;
+    margin-top: 0;
+  }
+
+  .today-layout {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 20px;
+  }
+
+  .today-layout__chest {
+    flex: 0 0 auto;
+    width: 210px;
+  }
+
+  .today-layout__panel {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .today-layout__panel .reveal {
+    margin-top: 0;
+  }
+
+  .app-footer {
+    margin-top: 24px;
+  }
+}
+
+/* ================= pointer-specific polish ================= */
+
+/* Hover effects only where there's a real pointer, so phones don't get
+   "stuck" hover styles after a tap. */
+@media (hover: hover) and (pointer: fine) {
+  .nav-tab:not(.nav-tab--active):hover {
+    border-color: var(--caramel);
+    color: var(--mocha);
+  }
+
+  .chest-stage--closed .chest:hover {
+    filter: brightness(1.03);
+  }
+
+  .quest-check:not(:disabled):hover .paw-mark {
+    color: var(--caramel);
+    transform: scale(1.1);
+  }
+
+  .treasure-badge:hover {
+    border-color: var(--caramel);
+    background: #f7ecda;
+  }
+
+  .btn--primary:not(:disabled):hover {
+    filter: brightness(1.08);
+  }
+
+  .btn--ghost:hover {
+    border-color: var(--caramel);
+    color: var(--mocha);
+  }
+
+  .bonus-card__link:hover {
+    filter: brightness(1.06);
+    transform: translateY(-1px);
+  }
+
+  .bonus-toggle label:hover {
+    border-color: var(--caramel);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .chest__lid {
+    transition: none;
+  }
+
+  .sparkle {
+    animation: none;
+    opacity: 0;
   }
 }

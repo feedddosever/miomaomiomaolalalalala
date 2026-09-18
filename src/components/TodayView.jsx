@@ -76,26 +76,32 @@ export default function TodayView() {
       {loading ? (
         <p className="view__loading">Loading today's chest…</p>
       ) : (
-        <>
-          <Chest status={status} onOpen={handleOpen} />
+        /* One column on phones; on wide screens the chest sits beside the
+           quests instead of pushing them below the fold (see .today-layout). */
+        <div className="today-layout">
+          <div className="today-layout__chest">
+            <Chest status={status} onOpen={handleOpen} />
 
-          {error && <p className="view__error">{error}</p>}
+            {error && <p className="view__error">{error}</p>}
 
-          {status === 'empty' && !error && (
-            <p className="view__note">
-              You haven't planned anything for today yet — add it from the{' '}
-              <em>Plan Ahead</em> tab.
-            </p>
-          )}
+            {status === 'empty' && !error && (
+              <p className="view__note">
+                You haven't planned anything for today yet — add it from the{' '}
+                <em>Plan Ahead</em> tab.
+              </p>
+            )}
+          </div>
 
           {treasure && (
-            <div className="reveal">
-              <h2 className="reveal__title">Today's quests</h2>
-              <QuestList quests={treasure.quests} onToggle={handleToggleQuest} />
-              <BonusCard type={treasure.bonus_type} bonus={treasure.bonus} />
+            <div className="today-layout__panel">
+              <div className="reveal">
+                <h2 className="reveal__title">Today's quests</h2>
+                <QuestList quests={treasure.quests} onToggle={handleToggleQuest} />
+                <BonusCard type={treasure.bonus_type} bonus={treasure.bonus} />
+              </div>
             </div>
           )}
-        </>
+        </div>
       )}
     </section>
   )
