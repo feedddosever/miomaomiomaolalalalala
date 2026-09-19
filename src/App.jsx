@@ -34,9 +34,17 @@ export default function App() {
       {!supabaseConfigured ? (
         <div className="config-warning">
           <p>
-            Supabase isn't connected yet. Add <code>VITE_SUPABASE_URL</code> and{' '}
-            <code>VITE_SUPABASE_ANON_KEY</code> to a <code>.env.local</code> file (see{' '}
-            <code>.env.example</code> and the README), then restart the dev server.
+            <strong>Supabase isn't connected.</strong> This build was made without{' '}
+            <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code>.
+          </p>
+          <p>
+            Running locally? Put them in <code>.env.local</code> (see{' '}
+            <code>.env.example</code>) and restart the dev server.
+          </p>
+          <p>
+            Deployed on Vercel? Add them under <em>Settings → Environment Variables</em>{' '}
+            for the Production environment, then redeploy — Vite bakes these in at build
+            time, so changing them needs a fresh build, not just a restart.
           </p>
         </div>
       ) : showPlanner ? (

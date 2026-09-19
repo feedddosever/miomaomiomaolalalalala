@@ -36,8 +36,28 @@ function fetchWithTimeout(input, init = {}) {
   return fetch(input, { ...init, signal: controller.signal }).finally(() => clearTimeout(timer))
 }
 
-export const supabase = createClient(supabaseUrl ?? '', supabaseAnonKey ?? '', {
-  global: { fetch: fetchWithTimeout },
-})
-
 export const supabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey)
+
+function makeClient() {
+  if (!supabaseConfigured) {
+    // createClient throws "supabaseUrl is required." on empty config, and
+    // it throws while this module is being imported -- before React ever
+    // mounts. That blanked the entire page and made the "not connected"
+    // notice in App.jsx unreachable, which is the worst possible way to
+    // report a missing environment variable. Hand back a stand-in that
+    // explains itself only if something actually tries to use it.
+    return new Proxy(
+      {},
+      {
+        get() {
+          throw new Error(
+            'Supabase is not configured: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY were missing when this build was made.'
+          )
+        },
+      }
+    )
+  }
+  return createClient(supabaseUrl, supabaseAnonKey, { global: { fetch: fetchWithTimeout } })
+}
+
+export const supabase = makeClient()

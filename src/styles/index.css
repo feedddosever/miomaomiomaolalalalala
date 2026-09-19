@@ -162,6 +162,43 @@ label {
   color: var(--mocha-soft);
 }
 
+.config-warning p + p {
+  margin-top: 10px;
+}
+
+/* Shown when the app can't start or a render blows up -- anything is
+   better than a blank page with the reason hidden in the console. */
+.fatal {
+  max-width: 560px;
+  margin: 48px auto;
+  padding: 24px 20px;
+  background: #fff4e0;
+  border: 1px solid var(--parchment-edge);
+  border-radius: 16px;
+  font-family: var(--font-body);
+  color: var(--mocha);
+}
+
+.fatal h1 {
+  font-size: 1.3rem;
+  margin-bottom: 8px;
+}
+
+.fatal p {
+  margin: 0 0 12px;
+  color: var(--mocha-soft);
+}
+
+.fatal pre {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  background: var(--parchment);
+  border-radius: 10px;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .config-warning code {
   background: var(--parchment);
   padding: 1px 6px;
