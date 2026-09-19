@@ -4,6 +4,7 @@ import TodayView from './components/TodayView'
 import TreasuresView from './components/TreasuresView'
 import PlanAheadView from './components/PlanAheadView'
 import PasscodeGate from './components/PasscodeGate'
+import PawTrail from './components/PawTrail'
 import { supabaseConfigured } from './lib/supabaseClient'
 import { useAdminAccess } from './lib/adminAccess'
 
@@ -17,6 +18,8 @@ export default function App() {
 
   return (
     <div className="app-shell">
+      <PawTrail />
+
       <header className="app-header">
         {/* Tapping the ears five times is the phone-friendly way in. */}
         <svg

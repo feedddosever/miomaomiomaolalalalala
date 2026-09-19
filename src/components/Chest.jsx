@@ -1,12 +1,29 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 /**
  * status: 'empty'  -> nothing planned for this date, chest is dim & inert
  *         'closed' -> content is waiting, chest is tappable
  *         'open'   -> already opened, lid stays up
  */
+// How long after the chest is open before the kitten gets curious.
+const CAT_MIN_MS = 5000
+const CAT_MAX_MS = 10000
+
 export default function Chest({ status, onOpen, missed = false }) {
   const [burst, setBurst] = useState(false)
+  const [catPeeking, setCatPeeking] = useState(false)
+
+  // Once the chest is open, a kitten pokes its head out from behind it
+  // after a few seconds. Re-armed whenever the chest closes again.
+  useEffect(() => {
+    if (status !== 'open') {
+      setCatPeeking(false)
+      return undefined
+    }
+    const delay = CAT_MIN_MS + Math.random() * (CAT_MAX_MS - CAT_MIN_MS)
+    const timer = window.setTimeout(() => setCatPeeking(true), delay)
+    return () => window.clearTimeout(timer)
+  }, [status])
 
   function handleClick() {
     if (status !== 'closed') return
@@ -51,6 +68,33 @@ export default function Chest({ status, onOpen, missed = false }) {
         onKeyDown={handleKeyDown}
       >
         <ellipse className="chest__shadow" cx="140" cy="214" rx="92" ry="12" />
+
+        {/* The kitten sits here on purpose: everything after this line is
+            drawn over it, so the chest body hides the half of it that is
+            still behind the chest. */}
+        <g transform="translate(248, 158)">
+          <g className={`chest__cat ${catPeeking ? 'chest__cat--peeking' : ''}`}>
+            <path className="chest__cat-ear" d="M-15,-16 L-21,-35 L-1,-23 Z" />
+            <path className="chest__cat-ear-inner" d="M-13,-18 L-17,-29 L-6,-22 Z" />
+            <path className="chest__cat-ear" d="M15,-16 L21,-35 L1,-23 Z" />
+            <path className="chest__cat-ear-inner" d="M13,-18 L17,-29 L6,-22 Z" />
+
+            <ellipse className="chest__cat-head" cx="0" cy="0" rx="23" ry="20" />
+
+            <g className="chest__cat-eyes">
+              <ellipse cx="-7" cy="-3" rx="3" ry="3.6" />
+              <ellipse cx="9" cy="-3" rx="3" ry="3.6" />
+            </g>
+
+            <ellipse className="chest__cat-nose" cx="1" cy="5" rx="3" ry="2.2" />
+            <path className="chest__cat-whisker" d="M6,7 Q18,5 27,8" />
+            <path className="chest__cat-whisker" d="M6,10 Q18,12 26,15" />
+            <path className="chest__cat-whisker" d="M-4,7 Q-14,6 -21,9" />
+
+            {/* a front paw braced against the side of the chest */}
+            <ellipse className="chest__cat-paw" cx="-9" cy="22" rx="8" ry="5.5" />
+          </g>
+        </g>
 
         {/* body */}
         <rect className="chest__foot" x="40" y="188" width="200" height="18" rx="7" />

@@ -176,6 +176,21 @@ Breakpoints, touch-target sizes and the layout switches all live in
 `src/styles/index.css`, grouped under the `responsive:` comment banners
 near the bottom.
 
+## The cat you never quite see
+
+- **Paw prints** drift across the background, fading in one after another
+  as though something small had just padded past. They live in
+  `src/components/PawTrail.jsx` (the walk itself) and the `paw-trail`
+  block in the stylesheet. They sit behind everything and ignore taps.
+- **A kitten peeks out** from behind the right-hand side of the chest
+  5-10 seconds after you open it, blinks now and then, and stays for the
+  rest of the visit. The timing is `CAT_MIN_MS` / `CAT_MAX_MS` in
+  `src/components/Chest.jsx`; the drawing is the `chest__cat` group in
+  the same file. It is deliberately drawn before the chest body, which
+  is what hides the half of it that is still behind the chest.
+- Both stop moving under "reduce motion": the prints hold still and the
+  kitten simply fades in.
+
 ## Customizing
 
 - **Colors** live as CSS variables at the top of
