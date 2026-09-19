@@ -4,12 +4,14 @@ import BonusCard from './BonusCard'
 import PawMark from './PawMark'
 import { getAllCollectedTreasures, updateCollectedQuests } from '../lib/api'
 import { toShort } from '../lib/date'
+import { friendlyError } from '../lib/errors'
 
 export default function TreasuresView() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [treasures, setTreasures] = useState([])
   const [openDate, setOpenDate] = useState(null)
+  const [reloadKey, setReloadKey] = useState(0)
 
   // Newest quest array per date, updated synchronously on click, so two
   // quick ticks on the same day don't both read the same stale row and
@@ -27,7 +29,7 @@ export default function TreasuresView() {
         questsByDate.current = new Map(rows.map((r) => [r.date, r.quests]))
         setTreasures(rows)
       } catch (err) {
-        if (!cancelled) setError(err.message ?? 'Could not load your treasures.')
+        if (!cancelled) setError(friendlyError(err, 'Could not load your treasures.'))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -36,7 +38,7 @@ export default function TreasuresView() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [reloadKey])
 
   async function handleToggleQuest(date, index) {
     const base = questsByDate.current.get(date)
@@ -47,7 +49,7 @@ export default function TreasuresView() {
     try {
       await updateCollectedQuests(date, nextQuests)
     } catch (err) {
-      setError(err.message ?? 'Could not save that check-off.')
+      setError(friendlyError(err, 'Could not save that check-off.'))
     }
   }
 
@@ -59,10 +61,19 @@ export default function TreasuresView() {
     )
   }
 
-  if (error) {
+  if (error && treasures.length === 0) {
     return (
       <section className="view view--treasures">
-        <p className="view__error">{error}</p>
+        <div className="load-failed">
+          <p className="view__error">{error}</p>
+          <button
+            type="button"
+            className="btn btn--primary"
+            onClick={() => setReloadKey((k) => k + 1)}
+          >
+            Try again
+          </button>
+        </div>
       </section>
     )
   }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { getAllDailyContent, upsertDailyContent, deleteDailyContent } from '../lib/api'
 import { toShort, todayISO } from '../lib/date'
 import { USING_DEFAULT_PASSCODE } from '../lib/adminAccess'
+import { friendlyError } from '../lib/errors'
 
 const emptyForm = {
   date: '',
@@ -63,7 +64,7 @@ export default function PlanAheadView({ onClose }) {
       const rows = await getAllDailyContent()
       setEntries(rows)
     } catch (err) {
-      setError(err.message ?? 'Could not load the calendar.')
+      setError(friendlyError(err, 'Could not load the calendar.'))
     } finally {
       setLoading(false)
     }
@@ -107,7 +108,7 @@ export default function PlanAheadView({ onClose }) {
       await refresh()
       setForm({ ...emptyForm, date: todayISO() })
     } catch (err) {
-      setError(err.message ?? 'Could not save that day.')
+      setError(friendlyError(err, 'Could not save that day.'))
     } finally {
       setSaving(false)
     }
@@ -119,7 +120,7 @@ export default function PlanAheadView({ onClose }) {
       await deleteDailyContent(date)
       await refresh()
     } catch (err) {
-      setError(err.message ?? 'Could not delete that day.')
+      setError(friendlyError(err, 'Could not delete that day.'))
     }
   }
 

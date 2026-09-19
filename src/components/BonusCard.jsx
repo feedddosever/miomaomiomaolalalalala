@@ -1,4 +1,9 @@
 export default function BonusCard({ type, bonus }) {
+  // `bonus jsonb not null` still allows the JSON value null, so a row
+  // hand-edited in the Supabase dashboard can arrive as null and used to
+  // crash the whole page on bonus.title. Just show no bonus instead.
+  if (!bonus || typeof bonus !== 'object') return null
+
   if (type === 'recipe') {
     return (
       <div className="bonus-card bonus-card--recipe">

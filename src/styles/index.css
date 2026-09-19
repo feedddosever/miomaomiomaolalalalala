@@ -239,6 +239,14 @@ label {
   margin-inline: auto;
 }
 
+.load-failed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  margin-top: 24px;
+}
+
 /* ---------- today layout ---------- */
 
 .today-layout {

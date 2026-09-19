@@ -11,5 +11,33 @@ if (!supabaseUrl || !supabaseAnonKey) {
   )
 }
 
-export const supabase = createClient(supabaseUrl ?? '', supabaseAnonKey ?? '')
+// A request that connects but never answers used to hang forever: the app
+// sat on "Loading today's chest…" with no error and no way out. Every call
+// now gives up after this long and surfaces a real failure instead.
+const REQUEST_TIMEOUT_MS = 15000
+
+function fetchWithTimeout(input, init = {}) {
+  // Abort through a controller rather than AbortSignal.timeout(). The
+  // timeout signal rejects with a TimeoutError, and postgrest-js only
+  // stops its own retry loop for an AbortError -- so a hung request was
+  // retried 3 more times, each with a fresh timeout, leaving the spinner
+  // up for about a minute. A controller abort reads as AbortError and
+  // propagates immediately.
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+
+  // Keep honouring a caller-supplied signal alongside our own.
+  const caller = init.signal
+  if (caller) {
+    if (caller.aborted) controller.abort(caller.reason)
+    else caller.addEventListener('abort', () => controller.abort(caller.reason), { once: true })
+  }
+
+  return fetch(input, { ...init, signal: controller.signal }).finally(() => clearTimeout(timer))
+}
+
+export const supabase = createClient(supabaseUrl ?? '', supabaseAnonKey ?? '', {
+  global: { fetch: fetchWithTimeout },
+})
+
 export const supabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey)

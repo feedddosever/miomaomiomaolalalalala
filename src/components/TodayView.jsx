@@ -4,10 +4,15 @@ import QuestList from './QuestList'
 import BonusCard from './BonusCard'
 import { getDailyContent, getCollectedTreasure, collectTreasure, updateCollectedQuests } from '../lib/api'
 import { todayISO, toPretty } from '../lib/date'
+import { friendlyError } from '../lib/errors'
 
 export default function TodayView() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  // Tracked apart from `error`: if the first load failed we know nothing
+  // about today, so showing a dim "nothing planned" chest would be a lie.
+  const [loadFailed, setLoadFailed] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
   const [planned, setPlanned] = useState(null) // row from daily_content, if any
   const [treasure, setTreasure] = useState(null) // row from collected_treasures, once opened
 
@@ -29,6 +34,7 @@ export default function TodayView() {
     async function load() {
       setLoading(true)
       setError(null)
+      setLoadFailed(false)
       try {
         const already = await getCollectedTreasure(date)
         if (cancelled) return
@@ -39,7 +45,10 @@ export default function TodayView() {
           if (!cancelled) setPlanned(content)
         }
       } catch (err) {
-        if (!cancelled) setError(err.message ?? 'Something went wrong loading today.')
+        if (!cancelled) {
+          setError(friendlyError(err, 'Something went wrong loading today.'))
+          setLoadFailed(true)
+        }
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -48,7 +57,7 @@ export default function TodayView() {
     return () => {
       cancelled = true
     }
-  }, [date])
+  }, [date, reloadKey])
 
   async function handleOpen() {
     if (!planned || treasure) return
@@ -71,7 +80,7 @@ export default function TodayView() {
           /* fall through to the message below */
         }
       }
-      setError(err.message ?? 'Could not open the chest just now.')
+      setError(friendlyError(err, 'Could not open the chest just now.'))
     }
   }
 
@@ -84,7 +93,7 @@ export default function TodayView() {
     try {
       await updateCollectedQuests(date, nextQuests)
     } catch (err) {
-      setError(err.message ?? 'Could not save that check-off.')
+      setError(friendlyError(err, 'Could not save that check-off.'))
     }
   }
 
@@ -98,6 +107,17 @@ export default function TodayView() {
 
       {loading ? (
         <p className="view__loading">Loading today's chest…</p>
+      ) : loadFailed ? (
+        <div className="load-failed">
+          <p className="view__error">{error}</p>
+          <button
+            type="button"
+            className="btn btn--primary"
+            onClick={() => setReloadKey((k) => k + 1)}
+          >
+            Try again
+          </button>
+        </div>
       ) : (
         /* One column on phones; on wide screens the chest sits beside the
            quests instead of pushing them below the fold (see .today-layout). */
