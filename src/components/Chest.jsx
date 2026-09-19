@@ -5,7 +5,7 @@ import { useState } from 'react'
  *         'closed' -> content is waiting, chest is tappable
  *         'open'   -> already opened, lid stays up
  */
-export default function Chest({ status, onOpen }) {
+export default function Chest({ status, onOpen, missed = false }) {
   const [burst, setBurst] = useState(false)
 
   function handleClick() {
@@ -44,8 +44,8 @@ export default function Chest({ status, onOpen }) {
           isEmpty
             ? 'No adventure planned yet'
             : isOpen
-            ? "Today's chest, already opened"
-            : "Tap to open today's chest"
+            ? `${missed ? 'This' : "Today's"} chest, already opened`
+            : `Tap to open ${missed ? 'the chest you missed' : "today's chest"}`
         }
         onClick={handleClick}
         onKeyDown={handleKeyDown}
@@ -93,7 +93,9 @@ export default function Chest({ status, onOpen }) {
         {isEmpty
           ? 'Nothing planned for this day yet'
           : isOpen
-          ? 'Opened for today'
+          ? missed
+            ? 'Opened'
+            : 'Opened for today'
           : 'Tap the chest'}
       </p>
     </div>

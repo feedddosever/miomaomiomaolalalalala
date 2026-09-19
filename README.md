@@ -13,6 +13,14 @@ edit days without redeploying.
   automatically.
 - **My Treasures** — every day you've opened, in one place, with your
   check-offs preserved.
+- **A day you missed** — if nothing is planned for today, the chest
+  offers the most recent past day you never got round to opening,
+  labelled "Still waiting from Friday, September 18". Tapping it collects
+  that day under its own date, so it lands in My Treasures as the day it
+  was for, not as today. A day that was already opened is never
+  re-offered, a day planned for the future is never offered early, and
+  the look-back stops at 30 days (`MISSED_DAY_LOOKBACK` in
+  `src/lib/api.js`).
 - **The planner** — hidden. Visitors only ever see the two tabs above;
   there's no third tab and no planner markup on the page. You reach it
   with your passcode (see below), and it then takes over the whole page

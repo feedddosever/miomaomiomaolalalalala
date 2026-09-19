@@ -2,7 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import Chest from './Chest'
 import QuestList from './QuestList'
 import BonusCard from './BonusCard'
-import { getDailyContent, getCollectedTreasure, collectTreasure, updateCollectedQuests } from '../lib/api'
+import {
+  getDailyContent,
+  getCollectedTreasure,
+  getMissedDay,
+  collectTreasure,
+  updateCollectedQuests,
+} from '../lib/api'
 import { todayISO, toPretty } from '../lib/date'
 import { friendlyError } from '../lib/errors'
 
@@ -22,7 +28,7 @@ export default function TodayView() {
   // click, so rapid ticks chain instead of overwriting each other.
   const questsRef = useRef(null)
 
-  const date = todayISO()
+  const today = todayISO()
 
   function adopt(row) {
     questsRef.current = row?.quests ?? null
@@ -36,13 +42,21 @@ export default function TodayView() {
       setError(null)
       setLoadFailed(false)
       try {
-        const already = await getCollectedTreasure(date)
+        const already = await getCollectedTreasure(today)
         if (cancelled) return
         if (already) {
           adopt(already)
         } else {
-          const content = await getDailyContent(date)
-          if (!cancelled) setPlanned(content)
+          const content = await getDailyContent(today)
+          if (cancelled) return
+          if (content) {
+            setPlanned(content)
+          } else {
+            // Nothing for today -- offer the most recent day you never got
+            // round to opening, rather than leaving it stranded forever.
+            const missed = await getMissedDay(today)
+            if (!cancelled) setPlanned(missed)
+          }
         }
       } catch (err) {
         if (!cancelled) {
@@ -57,13 +71,14 @@ export default function TodayView() {
     return () => {
       cancelled = true
     }
-  }, [date, reloadKey])
+  }, [today, reloadKey])
 
   async function handleOpen() {
     if (!planned || treasure) return
     try {
       const saved = await collectTreasure({
-        date,
+        // A missed day is collected under its own date, not today's.
+        date: planned.date,
         quests: planned.quests,
         bonus_type: planned.bonus_type,
         bonus: planned.bonus,
@@ -74,7 +89,7 @@ export default function TodayView() {
       // another tab. Show that chest rather than an error.
       if (err?.code === '23505') {
         try {
-          const existing = await getCollectedTreasure(date)
+          const existing = await getCollectedTreasure(planned.date)
           if (existing) return adopt(existing)
         } catch {
           /* fall through to the message below */
@@ -87,11 +102,13 @@ export default function TodayView() {
   async function handleToggleQuest(index) {
     const base = questsRef.current
     if (!base) return
+    const target = treasure?.date
+    if (!target) return
     const nextQuests = base.map((q, i) => (i === index ? { ...q, done: !q.done } : q))
     questsRef.current = nextQuests
     setTreasure((prev) => (prev ? { ...prev, quests: nextQuests } : prev))
     try {
-      await updateCollectedQuests(date, nextQuests)
+      await updateCollectedQuests(target, nextQuests)
     } catch (err) {
       setError(friendlyError(err, 'Could not save that check-off.'))
     }
@@ -101,9 +118,14 @@ export default function TodayView() {
   if (treasure) status = 'open'
   else if (planned) status = 'closed'
 
+  // Which day the chest on screen actually belongs to. Usually today, but
+  // it can be an older planned day that was never opened.
+  const activeDate = treasure?.date ?? planned?.date ?? today
+  const isMissed = activeDate !== today
+
   return (
     <section className="view view--today">
-      <p className="view__eyebrow">{toPretty(date)}</p>
+      <p className="view__eyebrow">{toPretty(today)}</p>
 
       {loading ? (
         <p className="view__loading">Loading today's chest…</p>
@@ -123,7 +145,13 @@ export default function TodayView() {
            quests instead of pushing them below the fold (see .today-layout). */
         <div className="today-layout">
           <div className="today-layout__chest">
-            <Chest status={status} onOpen={handleOpen} />
+            {isMissed && (
+              <p className="missed-note">
+                {status === 'open' ? 'From' : 'Still waiting from'} {toPretty(activeDate)}
+              </p>
+            )}
+
+            <Chest status={status} onOpen={handleOpen} missed={isMissed} />
 
             {error && <p className="view__error">{error}</p>}
 
@@ -136,7 +164,7 @@ export default function TodayView() {
           {treasure && (
             <div className="today-layout__panel">
               <div className="reveal">
-                <h2 className="reveal__title">Today's quests</h2>
+                <h2 className="reveal__title">{isMissed ? 'Quests' : "Today's quests"}</h2>
                 <QuestList quests={treasure.quests} onToggle={handleToggleQuest} />
                 <BonusCard type={treasure.bonus_type} bonus={treasure.bonus} />
               </div>

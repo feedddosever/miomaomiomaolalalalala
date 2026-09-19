@@ -36,6 +36,35 @@ export async function deleteDailyContent(date) {
   if (error) throw error
 }
 
+// How far back to look for a chest you never got round to opening. Older
+// than this and it's history, not a chest that's still waiting.
+const MISSED_DAY_LOOKBACK = 30
+
+/**
+ * The most recent planned day before `today` that was never opened, or
+ * null. Lets a day you missed still be collected instead of being
+ * stranded in the calendar forever.
+ */
+export async function getMissedDay(today) {
+  const { data: planned, error } = await supabase
+    .from('daily_content')
+    .select('*')
+    .lt('date', today)
+    .order('date', { ascending: false })
+    .limit(MISSED_DAY_LOOKBACK)
+  if (error) throw error
+  if (!planned?.length) return null
+
+  const { data: collected, error: collectedError } = await supabase
+    .from('collected_treasures')
+    .select('date')
+    .in('date', planned.map((row) => row.date))
+  if (collectedError) throw collectedError
+
+  const opened = new Set((collected ?? []).map((row) => row.date))
+  return planned.find((row) => !opened.has(row.date)) ?? null
+}
+
 // ---- collected_treasures: what's actually been opened + saved ----
 
 export async function getCollectedTreasure(date) {

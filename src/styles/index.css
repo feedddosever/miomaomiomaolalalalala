@@ -239,6 +239,19 @@ label {
   margin-inline: auto;
 }
 
+.missed-note {
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.92rem;
+  color: var(--mocha-soft);
+  background: var(--parchment);
+  border: 1px solid var(--parchment-edge);
+  border-radius: 999px;
+  padding: 6px 16px;
+}
+
 .load-failed {
   display: flex;
   flex-direction: column;
