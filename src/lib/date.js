@@ -28,3 +28,13 @@ export function toShort(iso) {
     year: 'numeric',
   })
 }
+
+// Start and end of the browser's local day, as instants. Used to ask
+// "was this opened today?" of a timestamptz column without dragging the
+// database's timezone into it.
+export function localDayBounds() {
+  const now = new Date()
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
+  return { start: start.toISOString(), end: end.toISOString() }
+}

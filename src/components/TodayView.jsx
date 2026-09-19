@@ -6,10 +6,11 @@ import {
   getDailyContent,
   getCollectedTreasure,
   getMissedDay,
+  getTreasureOpenedToday,
   collectTreasure,
   updateCollectedQuests,
 } from '../lib/api'
-import { todayISO, toPretty } from '../lib/date'
+import { todayISO, toPretty, localDayBounds } from '../lib/date'
 import { friendlyError } from '../lib/errors'
 
 export default function TodayView() {
@@ -55,7 +56,16 @@ export default function TodayView() {
             // Nothing for today -- offer the most recent day you never got
             // round to opening, rather than leaving it stranded forever.
             const missed = await getMissedDay(today)
-            if (!cancelled) setPlanned(missed)
+            if (cancelled) return
+            if (missed) {
+              setPlanned(missed)
+            } else {
+              // Nothing missed either. If a chest was opened earlier today
+              // (a missed day you already collected), keep showing it --
+              // otherwise it would disappear from Today on the next reload.
+              const openedToday = await getTreasureOpenedToday(localDayBounds())
+              if (!cancelled && openedToday) adopt(openedToday)
+            }
           }
         }
       } catch (err) {

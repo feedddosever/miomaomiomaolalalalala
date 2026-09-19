@@ -97,6 +97,24 @@ function toQuestRows(quests) {
   )
 }
 
+/**
+ * The most recent treasure opened during the local day given by
+ * [start, end), whatever date it was planned for. Keeps a missed chest
+ * you opened today on the Today screen instead of having it vanish on
+ * the next reload once it no longer counts as "missed".
+ */
+export async function getTreasureOpenedToday({ start, end }) {
+  const { data, error } = await supabase
+    .from('collected_treasures')
+    .select('*')
+    .gte('opened_at', start)
+    .lt('opened_at', end)
+    .order('opened_at', { ascending: false })
+    .limit(1)
+  if (error) throw error
+  return data?.[0] ?? null
+}
+
 export async function collectTreasure({ date, quests, bonus_type, bonus }) {
   const { data, error } = await supabase
     .from('collected_treasures')
