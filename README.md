@@ -182,12 +182,15 @@ near the bottom.
   as though something small had just padded past. They live in
   `src/components/PawTrail.jsx` (the walk itself) and the `paw-trail`
   block in the stylesheet. They sit behind everything and ignore taps.
-- **A kitten peeks out** from behind the right-hand side of the chest
-  5-10 seconds after you open it, blinks now and then, and stays for the
-  rest of the visit. The timing is `CAT_MIN_MS` / `CAT_MAX_MS` in
-  `src/components/Chest.jsx`; the drawing is the `chest__cat` group in
-  the same file. It is deliberately drawn before the chest body, which
-  is what hides the half of it that is still behind the chest.
+- **A kitten does the rounds.** 5-10 seconds after you open the chest it
+  appears behind it, watches for 5 seconds, slips away for 2, and turns
+  up somewhere else — over the quests, off to one side, down by the
+  bonus — then eventually comes back to the chest and starts again.
+  The route and the timings are `CAT_SPOTS`, `VISIBLE_MS` and
+  `HIDDEN_MS` in `src/lib/useWanderingCat.js`; the drawing is
+  `src/components/Kitten.jsx`, shared between the chest and the roaming
+  overlay. At the chest it is drawn before the chest body on purpose,
+  so the body hides the half of it still behind the chest.
 - Both stop moving under "reduce motion": the prints hold still and the
   kitten simply fades in.
 

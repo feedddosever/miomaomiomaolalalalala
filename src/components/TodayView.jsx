@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import Chest from './Chest'
 import QuestList from './QuestList'
 import BonusCard from './BonusCard'
+import RoamingCat from './RoamingCat'
 import {
   getDailyContent,
   getCollectedTreasure,
@@ -12,6 +13,7 @@ import {
 } from '../lib/api'
 import { todayISO, toPretty, localDayBounds } from '../lib/date'
 import { friendlyError } from '../lib/errors'
+import { useWanderingCat } from '../lib/useWanderingCat'
 
 export default function TodayView() {
   const [loading, setLoading] = useState(true)
@@ -133,6 +135,10 @@ export default function TodayView() {
   const activeDate = treasure?.date ?? planned?.date ?? today
   const isMissed = activeDate !== today
 
+  // Once the chest is open the kitten starts doing the rounds: behind the
+  // chest first, then over the quests, turning up somewhere new each time.
+  const cat = useWanderingCat(status === 'open')
+
   return (
     <section className="view view--today">
       <p className="view__eyebrow">{toPretty(today)}</p>
@@ -161,7 +167,12 @@ export default function TodayView() {
               </p>
             )}
 
-            <Chest status={status} onOpen={handleOpen} missed={isMissed} />
+            <Chest
+              status={status}
+              onOpen={handleOpen}
+              missed={isMissed}
+              catPeeking={cat.visible && cat.index === 0}
+            />
 
             {error && <p className="view__error">{error}</p>}
 
@@ -182,6 +193,8 @@ export default function TodayView() {
           )}
         </div>
       )}
+
+      {cat.index > 0 && <RoamingCat spot={cat.spot} visible={cat.visible} />}
     </section>
   )
 }
