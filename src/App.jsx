@@ -2,6 +2,7 @@ import { useState } from 'react'
 import NavTabs from './components/NavTabs'
 import TodayView from './components/TodayView'
 import TreasuresView from './components/TreasuresView'
+import LaterView from './components/LaterView'
 import PlanAheadView from './components/PlanAheadView'
 import PasscodeGate from './components/PasscodeGate'
 import PawTrail from './components/PawTrail'
@@ -63,6 +64,7 @@ export default function App() {
           <NavTabs current={tab} onChange={setTab} />
           <main className="app-main">
             {tab === 'today' && <TodayView />}
+            {tab === 'later' && <LaterView />}
             {tab === 'treasures' && <TreasuresView />}
           </main>
         </>

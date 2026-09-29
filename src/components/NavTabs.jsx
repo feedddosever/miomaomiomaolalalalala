@@ -1,8 +1,9 @@
 // "Plan Ahead" deliberately isn't here -- the planner is hidden behind the
-// passcode (see src/lib/adminAccess.js) so visitors only ever see the two
+// passcode (see src/lib/adminAccess.js) so visitors only ever see the
 // read-and-tick tabs.
 const TABS = [
   { id: 'today', label: 'Today' },
+  { id: 'later', label: 'For later' },
   { id: 'treasures', label: 'My Treasures' },
 ]
 

@@ -11,6 +11,13 @@ edit days without redeploying.
 - **Today** — shows a cat-eared chest. Tap it to reveal today's quests
   (which you can check off) and the day's bonus. Once opened, it's saved
   automatically.
+- **For later** — every quest from an earlier day that never got ticked,
+  gathered in one list and grouped by day, newest first. Tick one here
+  and it's saved on its own day, exactly as if you'd ticked it in My
+  Treasures. A ticked quest stays on screen (paw filled in) until you
+  leave the tab, so a slip of the thumb can be undone; next time it's
+  gone. Today's quests aren't listed, because they're still today's;
+  whatever is left unticked moves here once the day is over.
 - **My Treasures** — every day you've opened, in one place, with your
   check-offs preserved.
 - **A day you missed** — if nothing is planned for today, the chest
@@ -21,8 +28,8 @@ edit days without redeploying.
   re-offered, a day planned for the future is never offered early, and
   the look-back stops at 30 days (`MISSED_DAY_LOOKBACK` in
   `src/lib/api.js`).
-- **The planner** — hidden. Visitors only ever see the two tabs above;
-  there's no third tab and no planner markup on the page. You reach it
+- **The planner** — hidden. Visitors only ever see the three tabs above;
+  there's no planner tab and no planner markup on the page. You reach it
   with your passcode (see below), and it then takes over the whole page
   rather than sitting in the nav. It's a form to set each date's quests
   and bonus (recipe or Instagram link) ahead of time, plus a list of
@@ -150,7 +157,8 @@ redeploy if you change the app's code itself.
 
 The same page adapts to whatever you're holding:
 
-- **Phones** get a single column, two equal nav tabs that don't wrap,
+- **Phones** get a single column, three nav tabs that share the row
+  without wrapping (even at 320px),
   and touch targets of at least 44px everywhere (the paw check-offs have
   an invisible 40px hit area around them, so a thumb can't miss). Form
   fields are set to exactly 16px, which is what stops iOS Safari from
@@ -161,8 +169,8 @@ The same page adapts to whatever you're holding:
 - **Tablets** (from 600px) get roomier padding and the nav tabs shrink
   back to content-width pills.
 - **Laptops and desktops** (from 900px) get real use of the width: Today
-  puts the chest beside the quests instead of above them, My Treasures
-  becomes a two-up shelf, and the planner shows the form and the planned
+  puts the chest beside the quests instead of above them, For later and
+  My Treasures lay their days out two across, and the planner shows the form and the planned
   days side by side so you can see what's scheduled while you type. At
   1280px and up the shell widens again, the chest grows, and the shelf
   goes three across. Hover styling is applied only on devices with a real

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import QuestList from './QuestList'
 import BonusCard from './BonusCard'
 import PawMark from './PawMark'
-import { getAllCollectedTreasures, updateCollectedQuests } from '../lib/api'
+import { getAllCollectedTreasures, normalizeQuests, updateCollectedQuests } from '../lib/api'
 import { toShort } from '../lib/date'
 import { friendlyError } from '../lib/errors'
 
@@ -24,7 +24,10 @@ export default function TreasuresView() {
       setLoading(true)
       setError(null)
       try {
-        const rows = await getAllCollectedTreasures()
+        const rows = (await getAllCollectedTreasures()).map((r) => ({
+          ...r,
+          quests: normalizeQuests(r.quests),
+        }))
         if (cancelled) return
         questsByDate.current = new Map(rows.map((r) => [r.date, r.quests]))
         setTreasures(rows)
@@ -46,6 +49,7 @@ export default function TreasuresView() {
     const nextQuests = base.map((q, i) => (i === index ? { ...q, done: !q.done } : q))
     questsByDate.current.set(date, nextQuests)
     setTreasures((prev) => prev.map((t) => (t.date === date ? { ...t, quests: nextQuests } : t)))
+    setError(null)
     try {
       await updateCollectedQuests(date, nextQuests)
     } catch (err) {
@@ -88,6 +92,10 @@ export default function TreasuresView() {
 
   return (
     <section className="view view--treasures">
+      {/* A check-off that failed to save used to be set here and never
+          shown, so the paw looked ticked while nothing was stored. */}
+      {error && <p className="view__error">{error}</p>}
+
       <ul className="treasure-shelf">
         {treasures.map((t) => {
           const isOpen = openDate === t.date

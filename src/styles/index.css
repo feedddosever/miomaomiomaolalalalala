@@ -266,10 +266,12 @@ label {
 }
 
 .nav-tab {
-  /* On phones the three tabs share the row evenly so none of them wrap,
-     even at 320px. They shrink back to content-width pills on wider
-     screens (see the >=600px block). */
-  flex: 1 1 0;
+  /* On phones the three tabs fill the row between them, each sized to
+     its label, so "My Treasures" gets the room it needs and stays on one
+     line even at 320px (equal thirds squeezed it onto two). They go back
+     to plain content-width pills on wider screens (see the >=600px
+     block). */
+  flex: 1 1 auto;
   min-width: 0;
   min-height: var(--tap);
   border: 1px solid var(--parchment-edge);
@@ -855,6 +857,39 @@ label {
   flex-shrink: 0;
 }
 
+/* ---------- for later ---------- */
+
+/* Same track trick as the treasure shelf: minmax(0, 1fr) so one long
+   unbroken word can't widen the list and scroll the page sideways. */
+.later-list {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.later-day {
+  min-width: 0;
+  background: var(--parchment);
+  border: 1px solid var(--parchment-edge);
+  border-radius: 14px;
+  padding: 14px 16px 2px;
+}
+
+.later-day__date {
+  font-size: 1rem;
+  color: var(--mocha-soft);
+  margin: 0 0 12px;
+}
+
+.later-day .quest-list {
+  margin-bottom: 14px;
+}
+
 /* ---------- forms (plan ahead) ---------- */
 
 .plan-form,
@@ -1243,6 +1278,12 @@ textarea {
 
   .treasure-shelf__item--open {
     grid-column: 1 / -1;
+  }
+
+  /* For later: two days side by side. Kept at two even on the widest
+     screens -- these are sentences to read, not badges to scan. */
+  .later-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   /* Planner: form on the left, the planned days beside it, so you can

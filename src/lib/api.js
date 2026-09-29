@@ -86,6 +86,22 @@ export async function getAllCollectedTreasures() {
   return data ?? []
 }
 
+/**
+ * A treasure's quests as {text, done} objects, whatever the row holds.
+ * The app always writes that shape, but a row hand-edited in the Supabase
+ * dashboard can hold bare strings, or null in place of the list. Reading
+ * through this keeps one odd row from crashing a whole page -- or, worse,
+ * from being "ticked" by spreading a string into an object and saving it.
+ */
+export function normalizeQuests(quests) {
+  if (!Array.isArray(quests)) return []
+  return quests.map((q) =>
+    typeof q === 'string'
+      ? { text: q, done: false }
+      : { ...q, text: typeof q?.text === 'string' ? q.text : '', done: q?.done === true }
+  )
+}
+
 // daily_content.quests holds plain strings, but a row hand-edited in the
 // Supabase dashboard could already hold {text, done} objects. Accept both
 // rather than writing a treasure whose text is an object.
