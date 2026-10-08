@@ -13,19 +13,30 @@ Daily Chest Kitty — for Macs with Apple Silicon (M1, M2, M3, M4), macOS 12 or 
 
 3. Open "Daily Chest Kitty" from Applications.
    A paw appears in the menu bar at the top of the screen. The first
-   time, the kitty will ask for a name.
+   time, someone small walks in and asks for a name (and a title).
 
 Using it
 --------
 • Click the paw in the menu bar for today's chest and quests. Ticks are
   saved straight away and show up on the website too.
 • Every so often the kitty walks across the screen, leaving paw prints.
-  The prints never block clicks. The more quests get ticked, the braver
-  the kitty becomes: first only prints, then a shadow, then a peek, and
-  one day the whole kitty comes to sit at the bottom of the screen.
-• The switches at the bottom of the panel pause the paw prints and turn
-  "start when the Mac starts" on or off.
+  The prints never block clicks. Every 3 ticked quests the kitty gets a
+  little braver: first only prints, then a shadow, then ear tips, then a
+  peek, and one day the whole kitty comes to sit at the bottom of the
+  screen. It never gets shyer again.
+• After a while in the same app, the kitty sometimes meows (never during
+  a Zoom, Teams or FaceTime call, and never when nobody is at the Mac).
+• The switches at the bottom of the panel turn the paw prints, the meows
+  and "start when the Mac starts" on or off.
 • Right-click the paw for a small menu, including Quit.
+
+Updating
+--------
+Once a day the app looks for a new version. When there is one, a 🎁
+appears next to the paw and the kitty comes to tell you. Click "Get it",
+then quit the old app (right-click the paw → Quit), and install the new
+one exactly like the first time: steps 1 to 3 above, replacing the old
+app when asked.
 
 If macOS still refuses to open it: System Settings → Privacy & Security,
 scroll down, and click "Open Anyway" next to Daily Chest Kitty.

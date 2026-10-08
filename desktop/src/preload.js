@@ -8,6 +8,8 @@ contextBridge.exposeInMainWorld('kitty', {
   openChest: () => ipcRenderer.invoke('chest:open'),
   toggleQuest: (date, index) => ipcRenderer.invoke('quest:toggle', { date, index }),
   setSettings: (s) => ipcRenderer.invoke('settings:set', s),
+  cakeDone: () => ipcRenderer.invoke('cake:done'),
+  checkUpdates: () => ipcRenderer.invoke('update:check'),
   openWebsite: () => ipcRenderer.invoke('app:website'),
   openUrl: (url) => ipcRenderer.invoke('app:openUrl', url),
   quit: () => ipcRenderer.invoke('app:quit'),
@@ -16,5 +18,6 @@ contextBridge.exposeInMainWorld('kitty', {
   onRefresh: (fn) => ipcRenderer.on('kitty:refresh', () => fn()),
   // overlay only
   onWalk: (fn) => ipcRenderer.on('kitty:walk', (_e, data) => fn(data)),
+  onMeow: (fn) => ipcRenderer.on('kitty:meow', (_e, data) => fn(data)),
   overlayReady: () => ipcRenderer.send('overlay:ready'),
 })

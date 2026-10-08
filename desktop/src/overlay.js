@@ -1,6 +1,12 @@
 // Draws one walk at a time across the see-through layer: a line of paw
 // prints, and at the end of it as much of the kitty as it's brave enough
-// to show (nothing, a shadow, a peek, or a proper visit).
+// to show. Ten levels, one for every three ticked quests:
+//   1-2  a shadow slipping away (faint, then clearer)
+//   3-6  peeking up from the bottom of the screen (ear tips, eyes, face)
+//   7-10 sitting at the bottom of the screen (see-through, solid,
+//        napping, and finally moved in with a ball of yarn)
+// Also: the "arrival" sparkle when a level is reached, the gift walk
+// when there's a new version, and the occasional meow.
 
 const stage = document.getElementById('stage')
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -9,6 +15,37 @@ let queued = null
 
 const STEP_MS = 380
 const PRINT_LIFE_MS = 5000
+
+const LOOKS = [
+  null,
+  { kind: 'shadow', opacity: 0.16, blur: 4 },
+  { kind: 'shadow', opacity: 0.34, blur: 2 },
+  { kind: 'peek', rise: 34, opacity: 1 },
+  { kind: 'peek', rise: 60, opacity: 1 },
+  { kind: 'peek', rise: 92, opacity: 0.6 },
+  { kind: 'peek', rise: 92, opacity: 1 },
+  { kind: 'visit', opacity: 0.5 },
+  { kind: 'visit', opacity: 1 },
+  { kind: 'visit', opacity: 1, napChance: 0.7 },
+  { kind: 'visit', opacity: 1, napChance: 0.5, yarn: true },
+]
+
+// What the name tag says the first time each level is reached.
+const ARRIVAL_TAGS = [
+  '',
+  'was that {name}?',
+  '{name} again?',
+  'two little ears…',
+  '{name} is peeking!',
+  '{name} is getting braver',
+  'hi, {name}!',
+  '{name} came closer',
+  '{name} is here',
+  '{name} feels at home',
+  '{name} lives here now',
+]
+
+const MEOW_WORDS = ['meow', 'mrrp?', 'meeow', 'mew!', 'mrrrow']
 
 const PAW_INNER =
   '<ellipse cx="16" cy="20" rx="9" ry="7.5"/>' +
@@ -42,6 +79,12 @@ const SITTING_SVG = `<svg viewBox="-45 -45 90 110">
   <g transform="translate(0,-2)">${HEAD}</g>
 </svg>`
 
+const YARN_SVG = `<svg viewBox="-20 -20 40 40">
+  <circle r="15" fill="#c98a86" stroke="#4a2f23" stroke-width="2"/>
+  <path d="M-12,-6 Q0,-14 12,-6 M-14,2 Q0,-6 14,2 M-11,9 Q0,2 11,9" fill="none" stroke="#a5605c" stroke-width="1.6"/>
+  <path d="M14,6 Q26,10 30,2" fill="none" stroke="#c98a86" stroke-width="2"/>
+</svg>`
+
 function el(cls, html) {
   const d = document.createElement('div')
   d.className = cls
@@ -52,22 +95,23 @@ function el(cls, html) {
 const rand = (a, b) => a + Math.random() * (b - a)
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v))
 const wait = (ms) => new Promise((r) => setTimeout(r, ms))
+const fill = (text, name) => text.replace('{name}', name || 'the kitty')
 
 // A gentle curve across part of the screen, from one side, ending
-// somewhere in the lower two thirds where the kitty can show up.
-function makePath() {
+// somewhere in the lower two thirds where the kitty can show up. The
+// intro walk heads up towards the menu bar instead.
+function makePath(towardMenuBar = false) {
   const W = window.innerWidth
   const H = window.innerHeight
-  const fromLeft = Math.random() < 0.5
+  const fromLeft = towardMenuBar ? true : Math.random() < 0.5
   const x0 = fromLeft ? rand(-20, W * 0.1) : rand(W * 0.9, W + 20)
-  const y0 = rand(H * 0.4, H * 0.92)
-  const x1 = fromLeft ? rand(W * 0.45, W * 0.8) : rand(W * 0.2, W * 0.55)
-  const y1 = clamp(y0 + rand(-H * 0.25, H * 0.12), H * 0.3, H * 0.9)
-  // Control point pushed off the straight line, for a wander rather than a march.
+  const y0 = towardMenuBar ? rand(H * 0.6, H * 0.85) : rand(H * 0.4, H * 0.92)
+  const x1 = towardMenuBar ? W * 0.82 : fromLeft ? rand(W * 0.45, W * 0.8) : rand(W * 0.2, W * 0.55)
+  const y1 = towardMenuBar ? H * 0.1 : clamp(y0 + rand(-H * 0.25, H * 0.12), H * 0.3, H * 0.9)
   const mx = (x0 + x1) / 2 + rand(-80, 80)
   const my = (y0 + y1) / 2 + rand(-H * 0.12, H * 0.12)
   const length = Math.hypot(x1 - x0, y1 - y0)
-  const steps = clamp(Math.round(length / 62), 9, 22)
+  const steps = clamp(Math.round(length / 62), 9, towardMenuBar ? 26 : 22)
   const points = []
   for (let i = 0; i < steps; i++) {
     const t = i / (steps - 1)
@@ -108,7 +152,7 @@ async function printTrail(points) {
 function showTag(text, x, y, ms) {
   const tag = el('tag')
   tag.textContent = text
-  tag.style.left = `${clamp(x, 90, window.innerWidth - 90)}px`
+  tag.style.left = `${clamp(x, 110, window.innerWidth - 110)}px`
   tag.style.top = `${clamp(y, 40, window.innerHeight - 10)}px`
   stage.append(tag)
   requestAnimationFrame(() => tag.classList.add('is-shown'))
@@ -116,21 +160,44 @@ function showTag(text, x, y, ms) {
   setTimeout(() => tag.remove(), ms + 800)
 }
 
-// Stage 1: a blurred shadow slips away from the end of the trail.
-async function shadow(end, dirX) {
+// Sparkles and a soft glow where the kitty is materialising.
+function sparkle(x, y) {
+  const burst = el('burst')
+  burst.style.left = `${x}px`
+  burst.style.top = `${y}px`
+  burst.append(el('glow'))
+  for (let i = 0; i < 12; i++) {
+    const s = el('sparkle')
+    s.style.setProperty('--a', `${i * 30 + rand(-8, 8)}deg`)
+    s.style.setProperty('--d', `${rand(46, 78)}px`)
+    s.style.animationDelay = `${rand(0, 180)}ms`
+    burst.append(s)
+  }
+  stage.append(burst)
+  setTimeout(() => burst.remove(), 2200)
+}
+
+// ---- how much of the kitty shows ----
+
+async function shadow(look, end, dirX, arriving) {
   const cat = el('cat cat--shadow', HEAD_SVG)
   cat.style.left = `${end.x}px`
   cat.style.top = `${end.y - 60}px`
+  cat.style.setProperty('--op', look.opacity)
+  cat.style.setProperty('--blur', `${look.blur}px`)
   cat.style.setProperty('--slip', `${dirX * 170}px`)
+  if (arriving) cat.classList.add('is-arriving')
   stage.append(cat)
-  await wait(1900)
+  await wait(arriving ? 3200 : 1900)
   cat.remove()
 }
 
-// Stage 2: ears and eyes come up from the bottom edge, look, and duck.
-async function peek(x, ms) {
+async function peek(look, x, ms, arriving) {
   const cat = el('cat cat--peek', HEAD_SVG)
   cat.style.left = `${clamp(x, 70, window.innerWidth - 70)}px`
+  cat.style.setProperty('--rise', `${look.rise}px`)
+  cat.style.opacity = look.opacity
+  if (arriving) cat.classList.add('is-arriving')
   stage.append(cat)
   await wait(60)
   cat.classList.add('is-up')
@@ -140,14 +207,24 @@ async function peek(x, ms) {
   cat.remove()
 }
 
-// Stage 3: the whole kitty sits at the bottom of the screen for a while,
-// and on a quiet walk sometimes falls asleep there.
-async function visit(x, ms, nap) {
+async function visit(look, x, ms, nap, arriving) {
+  const left = clamp(x, 90, window.innerWidth - 90)
   const cat = el('cat cat--visit', SITTING_SVG)
-  cat.style.left = `${clamp(x, 80, window.innerWidth - 80)}px`
+  cat.style.left = `${left}px`
+  cat.style.setProperty('--op', look.opacity)
+  if (arriving) cat.classList.add('is-arriving')
   stage.append(cat)
+  let yarn = null
+  if (look.yarn) {
+    yarn = el('yarn', YARN_SVG)
+    const side = left > window.innerWidth / 2 ? -1 : 1
+    yarn.style.left = `${left + side * 95}px`
+    yarn.style.setProperty('--from', `${side * 260}px`)
+    stage.append(yarn)
+  }
   await wait(60)
   cat.classList.add('is-here')
+  yarn?.classList.add('is-here')
   if (nap) {
     await wait(2500)
     cat.classList.add('cat--asleep')
@@ -157,38 +234,76 @@ async function visit(x, ms, nap) {
   }
   await wait(ms)
   cat.classList.remove('is-here')
+  yarn?.classList.remove('is-here')
   await wait(800)
   cat.remove()
+  yarn?.remove()
 }
 
-async function walk({ reason = 'idle', stage: level = 0, name = '' } = {}) {
+// Shows the kitty as it is at this level. `arriving` plays the
+// materialising sparkle (only when a level is reached).
+async function appear(level, end, dirX, { arriving = false, linger = false, napOk = false } = {}) {
+  const look = LOOKS[Math.max(0, Math.min(10, level))]
+  if (!look) return wait(1200)
+  const H = window.innerHeight
+  if (look.kind === 'shadow') {
+    if (arriving) sparkle(end.x, end.y - 30)
+    return shadow(look, end, dirX, arriving)
+  }
+  if (look.kind === 'peek') {
+    if (arriving) sparkle(clamp(end.x, 70, window.innerWidth - 70), H - look.rise / 2 - 10)
+    return peek(look, end.x, arriving || linger ? 5000 : 3500, arriving)
+  }
+  const nap = napOk && Math.random() < (look.napChance || 0)
+  if (arriving) sparkle(clamp(end.x, 90, window.innerWidth - 90), H - 80)
+  return visit(look, end.x, arriving || linger ? 9000 : nap ? 14000 : 6500, nap, arriving)
+}
+
+function tagSpot(level, end) {
+  const look = LOOKS[Math.max(0, Math.min(10, level))]
+  const H = window.innerHeight
+  if (!look) return { x: end.x, y: end.y - 24 }
+  if (look.kind === 'shadow') return { x: end.x, y: end.y - 70 }
+  if (look.kind === 'peek') return { x: end.x, y: H - look.rise - 30 }
+  return { x: end.x, y: H - 170 }
+}
+
+// Prints that would land under a peeking or sitting kitty are left out,
+// so a see-through kitty never has a smudge on its face.
+function underKitty(p, level, end) {
+  const look = LOOKS[Math.max(0, Math.min(10, level))]
+  if (!look || look.kind === 'shadow') return false
+  const H = window.innerHeight
+  const top = look.kind === 'visit' ? H - 165 : H - look.rise - 10
+  return p.y > top && Math.abs(p.x - end.x) < 75
+}
+
+async function walk({ reason = 'idle', level = 0, name = '' } = {}) {
   if (walking) {
-    // A stage-up never gets lost: it plays right after this walk.
-    if (reason === 'stageup') queued = { reason, stage: level, name }
+    // A level-up or a gift never gets lost: it plays right after this walk.
+    // So does the first hello, unless something more important is waiting.
+    if (reason === 'levelup' || reason === 'gift') queued = { reason, level, name }
+    else if (reason === 'hello' && !queued) queued = { reason, level, name }
     return
   }
   walking = true
   try {
-    const { points, end, dirX } = makePath()
-    const special = reason === 'stageup' || reason === 'hello'
-    await printTrail(points)
+    const { points, end, dirX } = makePath(reason === 'intro')
+    await printTrail(reason === 'intro' ? points : points.filter((p) => !underKitty(p, level, end)))
+    if (reason === 'intro') return await wait(1500)
 
-    const H = window.innerHeight
+    const spot = tagSpot(level, end)
     if (reason === 'hello' && name) showTag(`${name} was here`, end.x, end.y - 24, 3500)
-
-    if (level === 1) {
-      if (reason === 'stageup' && name) showTag(`was that ${name}?`, end.x, end.y - 70, 3200)
-      await shadow(end, dirX)
-    } else if (level === 2) {
-      if (reason === 'stageup' && name) showTag(`${name} is getting braver`, end.x, H - 110, 4200)
-      await peek(end.x, special ? 5000 : 3500)
-    } else if (level >= 3) {
-      if (reason === 'stageup' && name) showTag(`${name} lives here now`, end.x, H - 165, 5000)
-      const nap = reason === 'idle' && Math.random() < 0.5
-      await visit(end.x, special ? 9000 : nap ? 14000 : 6500, nap)
-    } else {
-      await wait(1500)
+    if (reason === 'gift') showTag(`🎁 ${fill('{name} wants to bring you something new', name)}`, spot.x, spot.y, 6000)
+    if (reason === 'levelup') {
+      const text = ARRIVAL_TAGS[Math.max(0, Math.min(10, level))]
+      if (text) showTag(fill(text, name), spot.x, spot.y, 4500)
     }
+    await appear(level, end, dirX, {
+      arriving: reason === 'levelup',
+      linger: reason === 'hello' || reason === 'gift',
+      napOk: reason === 'idle',
+    })
   } finally {
     walking = false
     if (queued) {
@@ -199,5 +314,45 @@ async function walk({ reason = 'idle', stage: level = 0, name = '' } = {}) {
   }
 }
 
+// ---- meows ----
+function playMeow() {
+  const n = 2 + Math.floor(Math.random() * 4) // meow-2 … meow-5
+  const audio = new Audio(`assets/sounds/meow-${n}.wav`)
+  audio.volume = 0.55
+  document.body.dataset.lastSound = `meow-${n}`
+  audio.play().catch(() => {})
+}
+
+async function meow({ level = 0 } = {}) {
+  const W = window.innerWidth
+  const H = window.innerHeight
+  const x = rand(W * 0.15, W * 0.85)
+  playMeow()
+  const look = LOOKS[Math.max(0, Math.min(10, level))]
+  const bubbleY = look?.kind === 'visit' ? H - 175 : look?.kind === 'peek' ? H - look.rise - 34 : H - 70
+  const bubble = el('meow')
+  bubble.textContent = MEOW_WORDS[Math.floor(Math.random() * MEOW_WORDS.length)]
+  bubble.style.left = `${clamp(x, 60, W - 60)}px`
+  bubble.style.top = `${bubbleY}px`
+  stage.append(bubble)
+  requestAnimationFrame(() => bubble.classList.add('is-shown'))
+  setTimeout(() => bubble.classList.remove('is-shown'), 2600)
+  setTimeout(() => bubble.remove(), 3300)
+  // Whoever is meowing shows as much of themselves as they dare.
+  if (!walking && look && look.kind !== 'shadow') {
+    walking = true
+    try {
+      await appear(level, { x, y: H * 0.8 }, 1, { linger: false })
+    } finally {
+      walking = false
+    }
+  } else if (!walking && !look) {
+    // Level 0: just three little prints next to the voice.
+    const prints = [0, 1, 2].map((i) => ({ x: x - 50 + i * 30, y: H - 40 - (i % 2) * 12, rot: 90 }))
+    printTrail(prints)
+  }
+}
+
 window.kitty.onWalk(walk)
+window.kitty.onMeow(meow)
 window.kitty.overlayReady()

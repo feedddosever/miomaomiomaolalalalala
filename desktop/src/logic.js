@@ -43,33 +43,78 @@ function countDone(rows) {
   return n
 }
 
-// How brave the kitty is, by the number of quests ever ticked (on the
-// website or here). Thresholds are deliberately gentle.
-const STAGES = [
-  { at: 0, line: '{name} only leaves paw prints so far.' },
-  { at: 5, line: '{name} slips past as a shadow now and then.' },
-  { at: 15, line: '{name} peeks out sometimes. Keep an eye on the bottom of your screen.' },
-  { at: 30, line: '{name} has fully moved in.' },
+// ---- how brave the kitty is ----
+// One more level for every 3 quests ticked since the kitty was named,
+// up to level 10 (30 quests): fully moved in.
+const QUESTS_PER_LEVEL = 3
+const MAX_LEVEL = 10
+
+const LEVEL_LINES = [
+  '{name} only leaves paw prints so far.',
+  '{name} slipped past as a faint shadow.',
+  "{name}'s shadow is getting clearer.",
+  'Two little ear tips have been spotted.',
+  '{name} peeks out sometimes.',
+  '{name} lets you see their face now.',
+  "{name} isn't so shy any more.",
+  '{name} came to sit nearby. Almost see-through.',
+  '{name} sits with you sometimes.',
+  '{name} naps on your screen now.',
+  '{name} has fully moved in.',
 ]
 
-function stageFor(doneCount) {
-  let stage = 0
-  STAGES.forEach((s, i) => {
-    if (doneCount >= s.at) stage = i
-  })
-  return stage
+function levelFor(bravery) {
+  return Math.max(0, Math.min(MAX_LEVEL, Math.floor(bravery / QUESTS_PER_LEVEL)))
 }
 
-function stageLine(stage, name) {
-  const s = STAGES[Math.max(0, Math.min(STAGES.length - 1, stage))]
-  return s.line.replace('{name}', name || 'The kitty')
+// Ticks towards the next level (0, 1 or 2), measured from the level the
+// kitty has actually reached, which never goes down.
+function progressFor(bravery, level) {
+  if (level >= MAX_LEVEL) return null
+  return Math.max(0, Math.min(QUESTS_PER_LEVEL - 1, bravery - level * QUESTS_PER_LEVEL))
 }
 
-function cleanName(raw) {
+function levelLine(level, name) {
+  const line = LEVEL_LINES[Math.max(0, Math.min(MAX_LEVEL, level))]
+  return line.replace('{name}', name || 'The kitty')
+}
+
+// The second half of the name, chosen on the first run.
+const TITLES = [
+  'the Brave',
+  'the Cutest',
+  'the Fluffy',
+  'the Sleepy',
+  'the Curious',
+  'the Magnificent',
+  'the Tiny',
+  'the Mighty',
+  'the Snack Thief',
+  'the Invisible',
+  'the Purrfect',
+  'the Wise',
+]
+
+function cleanName(raw, max = 60) {
   return String(raw ?? '')
     .replace(/\s+/g, ' ')
     .trim()
-    .slice(0, 40)
+    .slice(0, max)
+}
+
+// "1.10.0" > "1.9.2". Anything that isn't a version compares as 0.0.0.
+function compareVersions(a, b) {
+  const parse = (v) =>
+    String(v ?? '')
+      .replace(/^v/i, '')
+      .split('.')
+      .map((x) => parseInt(x, 10) || 0)
+  const pa = parse(a)
+  const pb = parse(b)
+  for (let i = 0; i < 3; i++) {
+    if ((pa[i] ?? 0) !== (pb[i] ?? 0)) return (pa[i] ?? 0) > (pb[i] ?? 0) ? 1 : -1
+  }
+  return 0
 }
 
 module.exports = {
@@ -78,8 +123,13 @@ module.exports = {
   prettyDate,
   normalizeQuests,
   countDone,
-  STAGES,
-  stageFor,
-  stageLine,
+  QUESTS_PER_LEVEL,
+  MAX_LEVEL,
+  LEVEL_LINES,
+  levelFor,
+  progressFor,
+  levelLine,
+  TITLES,
   cleanName,
+  compareVersions,
 }

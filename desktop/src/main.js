@@ -5,6 +5,7 @@
 
 const path = require('path')
 const fs = require('fs')
+const { execFile } = require('child_process')
 const {
   app,
   BrowserWindow,
@@ -24,13 +25,20 @@ const {
   prettyDate,
   normalizeQuests,
   countDone,
-  stageFor,
-  stageLine,
+  levelFor,
+  progressFor,
+  levelLine,
+  TITLES,
+  QUESTS_PER_LEVEL,
   cleanName,
+  compareVersions,
 } = require('./logic')
 
 const IS_MAC = process.platform === 'darwin'
 const TEST = process.env.KITTY_TEST === '1'
+const env = (name, fallback) => Number(process.env[name]) || fallback
+const MIN = 60 * 1000
+const HOUR = 60 * MIN
 
 // ---- config ----
 function loadConfig() {
@@ -44,10 +52,23 @@ function loadConfig() {
 const config = loadConfig()
 const db = makeDb({ url: config.supabaseUrl, key: config.anonKey })
 const WEBSITE = config.websiteUrl || 'https://miomaomiomaolalalalala.vercel.app'
+// New versions are published as GitHub Releases of the project.
+const UPDATE_URL =
+  process.env.KITTY_UPDATE_URL ||
+  config.updateUrl ||
+  'https://api.github.com/repos/feedddosever/miomaomiomaolalalalala/releases/latest'
 
-// Minutes between unprompted walks. Overridable so tests don't wait.
-const WALK_MIN_MS = Number(process.env.KITTY_WALK_MIN_MS) || 20 * 60 * 1000
-const WALK_MAX_MS = Number(process.env.KITTY_WALK_MAX_MS) || 40 * 60 * 1000
+// Timings, all overridable so the tests don't have to wait for real.
+const WALK_MIN_MS = env('KITTY_WALK_MIN_MS', 20 * MIN)
+const WALK_MAX_MS = env('KITTY_WALK_MAX_MS', 40 * MIN)
+const MEOW_AFTER_MS = env('KITTY_MEOW_AFTER_MS', 5 * MIN) // same app this long
+const MEOW_GAP_MS = env('KITTY_MEOW_GAP_MS', 30 * MIN) // then quiet for at least this long
+const MEOW_CHANCE = env('KITTY_MEOW_CHANCE', 0.5) // per check, once both have passed
+const FRONT_POLL_MS = env('KITTY_POLL_MS', 30 * 1000)
+const UPDATE_EVERY_MS = env('KITTY_UPDATE_EVERY_MS', 24 * HOUR)
+
+// Never meow over a call.
+const CALL_APPS = /zoom|teams|facetime|webex|skype|discord|whereby|gotomeeting|bluejeans|meet/i
 
 if (!TEST && !app.requestSingleInstanceLock()) app.quit()
 
@@ -65,14 +86,23 @@ let lastBlurHide = 0
 // One read of everything the panel shows. Network errors come back as
 // `error` alongside whatever is cached, never as a thrown exception.
 async function readState() {
+  const version = app.getVersion()
+  const update = store.get('update')
   const state = {
     name: store.get('name'),
+    titles: TITLES,
     paused: store.get('paused'),
+    meows: store.get('meows'),
     openAtLogin: openAtLogin(),
+    version,
+    update: update && compareVersions(update.version, version) > 0 ? update : null,
+    showCake: !!store.get('cakePending'),
     today: todayISO(),
     day: null,
-    stage: store.get('bestStage'),
-    stageLine: '',
+    level: store.get('bestLevel') || 0,
+    progress: null,
+    perLevel: QUESTS_PER_LEVEL,
+    levelLine: '',
     error: null,
   }
   try {
@@ -86,7 +116,9 @@ async function readState() {
       state.name = kitty.name
       if (kitty.name !== store.get('name')) store.set('name', kitty.name)
       // Only ticks made since the kitty was named make it braver.
-      state.stage = raiseStage(stageFor(Math.max(0, countDone(rows) - kitty.baselineDone)))
+      const bravery = Math.max(0, countDone(rows) - kitty.baselineDone)
+      state.level = raiseLevel(levelFor(bravery))
+      state.progress = progressFor(bravery, state.level)
     } else {
       // Not named yet (or renamed from scratch in the database).
       state.name = null
@@ -94,7 +126,7 @@ async function readState() {
   } catch (err) {
     state.error = err.message || 'Something went wrong.'
   }
-  state.stageLine = stageLine(state.stage, state.name)
+  state.levelLine = levelLine(state.level, state.name)
   lastState = state
   return state
 }
@@ -115,14 +147,14 @@ function shapeDay(day, today) {
   }
 }
 
-// The kitty only ever gets braver. Returns the stage to show and fires
-// the "look who's here" walk the first time a new stage is reached.
-function raiseStage(stage) {
-  const best = store.get('bestStage') || 0
-  if (stage > best) {
-    store.set('bestStage', stage)
-    setTimeout(() => walk('stageup'), 1200)
-    return stage
+// The kitty only ever gets braver. Returns the level to show, and the
+// first time a new level is reached, the kitty arrives in its new form.
+function raiseLevel(level) {
+  const best = store.get('bestLevel') || 0
+  if (level > best) {
+    store.set('bestLevel', level)
+    setTimeout(() => walk('levelup'), 1200)
+    return level
   }
   return best
 }
@@ -150,6 +182,7 @@ function createOverlay() {
       nodeIntegration: false,
       sandbox: true,
       backgroundThrottling: false,
+      autoplayPolicy: 'no-user-gesture-required',
     },
   })
   // Clicks, scrolls and drags all go straight through to whatever is
@@ -166,16 +199,23 @@ function fitOverlay() {
   overlay.setBounds(screen.getPrimaryDisplay().bounds)
 }
 
-function walk(reason = 'idle') {
+function toOverlay(channel, extra = {}) {
   if (!overlay || overlay.isDestroyed() || !overlayReady) return false
-  if (store.get('paused') && reason !== 'preview') return false
-  lastWalkAt = Date.now()
-  overlay.webContents.send('kitty:walk', {
-    reason,
-    stage: store.get('bestStage') || 0,
+  overlay.webContents.send(channel, {
+    level: store.get('bestLevel') || 0,
     name: store.get('name') || '',
+    ...extra,
   })
   return true
+}
+
+function walk(reason = 'idle') {
+  // Pausing stops the walks, but never a level-up, a gift or the preview.
+  const always = ['preview', 'levelup', 'gift', 'intro']
+  if (store.get('paused') && !always.includes(reason)) return false
+  const sent = toOverlay('kitty:walk', { reason })
+  if (sent) lastWalkAt = Date.now()
+  return sent
 }
 
 function scheduleWalks() {
@@ -187,11 +227,102 @@ function scheduleWalks() {
   }, wait)
 }
 
+// ---- meows after a while in the same app ----
+// Asks macOS which app is in front, using the built-in `lsappinfo`. That
+// needs no special permission, and nothing is stored or sent anywhere:
+// only "same app as 30 seconds ago, or not" matters.
+let testFrontApp = null
+function frontApp() {
+  if (TEST) return Promise.resolve(testFrontApp)
+  if (!IS_MAC) return Promise.resolve(null)
+  return new Promise((resolve) => {
+    execFile('/usr/bin/lsappinfo', ['front'], { timeout: 3000 }, (err, asn) => {
+      const id = String(asn || '').trim()
+      if (err || !id) return resolve(null)
+      execFile('/usr/bin/lsappinfo', ['info', id], { timeout: 3000 }, (err2, info) => {
+        const text = String(info || '')
+        const bundle = text.match(/bundleID="([^"]+)"/i)?.[1]
+        const name = text.match(/^"([^"]+)"/m)?.[1]
+        resolve([bundle, name].filter(Boolean).join(' ') || id)
+      })
+    })
+  })
+}
+
+let inFront = { app: null, since: 0 }
+let lastMeowAt = 0
+let testIdleSeconds = 0
+
+async function watchFrontApp() {
+  const now = Date.now()
+  const current = await frontApp()
+  if (!current) return
+  if (current !== inFront.app) inFront = { app: current, since: now }
+  // Away from the keyboard: the five minutes start again on return.
+  const idle = TEST ? testIdleSeconds : powerMonitor.getSystemIdleTime()
+  if (idle > 60) {
+    inFront.since = now
+    return
+  }
+  if (!store.get('meows') || CALL_APPS.test(current)) return
+  if (now - inFront.since < MEOW_AFTER_MS) return
+  if (now - lastMeowAt < MEOW_GAP_MS) return
+  if (Math.random() > MEOW_CHANCE) return
+  lastMeowAt = now
+  inFront.since = now
+  toOverlay('kitty:meow')
+}
+
+// ---- the daily update check ----
+async function checkForUpdate({ force = false } = {}) {
+  if (!force && Date.now() - (store.get('lastUpdateCheck') || 0) < UPDATE_EVERY_MS) {
+    return { checked: false }
+  }
+  try {
+    const res = await fetch(UPDATE_URL, {
+      headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'DailyChestKitty' },
+      signal: AbortSignal.timeout(15000),
+    })
+    // Only a real answer counts as today's check; offline, it tries again
+    // with the next hourly tick.
+    if (res.status === 404) {
+      store.set('lastUpdateCheck', Date.now())
+      return { checked: true, update: null } // nothing published yet
+    }
+    if (!res.ok) return { checked: false, error: `GitHub said ${res.status}` }
+    const release = await res.json()
+    store.set('lastUpdateCheck', Date.now())
+    const version = String(release.tag_name || '').replace(/^v/i, '')
+    if (!version || release.draft || release.prerelease) return { checked: true, update: null }
+    if (compareVersions(version, app.getVersion()) <= 0) {
+      store.set('update', null)
+      return { checked: true, update: null }
+    }
+    const update = { version, url: release.html_url || WEBSITE }
+    store.set('update', update)
+    showUpdateBadge()
+    // Tell the person once per version, with a walk across the screen.
+    if (store.get('announcedUpdate') !== version) {
+      store.set('announcedUpdate', version)
+      setTimeout(() => walk('gift'), 1500)
+    }
+    return { checked: true, update }
+  } catch (err) {
+    return { checked: false, error: err.message }
+  }
+}
+
+function showUpdateBadge() {
+  const update = store.get('update')
+  const waiting = update && compareVersions(update.version, app.getVersion()) > 0
+  if (tray && IS_MAC) tray.setTitle(waiting ? ' 🎁' : '')
+}
+
 // ---- the panel under the menu bar paw ----
 function createPanel() {
   panel = new BrowserWindow({
     width: 360,
-    height: 560,
+    height: 580,
     show: false,
     frame: false,
     resizable: false,
@@ -208,6 +339,7 @@ function createPanel() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      autoplayPolicy: 'no-user-gesture-required',
     },
   })
   panel.loadFile(path.join(__dirname, 'panel.html'))
@@ -277,16 +409,23 @@ function createTray() {
   tray.setToolTip('Daily Chest Kitty')
   tray.on('click', togglePanel)
   tray.on('right-click', () => tray.popUpContextMenu(contextMenu()))
+  showUpdateBadge()
 }
 
 function contextMenu() {
   return Menu.buildFromTemplate([
     { label: "Open today's chest", click: showPanel },
     {
-      label: 'Pause paw prints',
+      label: 'Paw prints',
       type: 'checkbox',
-      checked: !!store.get('paused'),
-      click: (item) => setPaused(item.checked),
+      checked: !store.get('paused'),
+      click: (item) => setPaused(!item.checked),
+    },
+    {
+      label: 'Meows',
+      type: 'checkbox',
+      checked: !!store.get('meows'),
+      click: (item) => store.set('meows', item.checked),
     },
     { label: 'Open the website', click: () => shell.openExternal(WEBSITE) },
     { type: 'separator' },
@@ -348,9 +487,11 @@ function setupIpc() {
       try {
         const row = await db.toggleQuest(date, index)
         const nowDone = normalizeQuests(row.quests)[index]?.done
+        const before = store.get('bestLevel') || 0
         const state = await readState()
-        // A ticked quest gets a little walk as a thank-you.
-        if (nowDone) walk('tick')
+        // A ticked quest gets a little walk as a thank-you, unless it just
+        // made the kitty braver: then the arrival is the thank-you.
+        if (nowDone && state.level === before) walk('tick')
         return { ok: true, state }
       } catch (err) {
         return { ok: false, error: err.message, state: await readState() }
@@ -358,14 +499,25 @@ function setupIpc() {
     })
   )
 
-  ipcMain.handle('settings:set', (_e, { paused, openAtLogin: wantLogin }) => {
+  ipcMain.handle('settings:set', (_e, { paused, meows, openAtLogin: wantLogin }) => {
     if (typeof paused === 'boolean') setPaused(paused)
+    if (typeof meows === 'boolean') store.set('meows', meows)
     if (typeof wantLogin === 'boolean' && IS_MAC) setOpenAtLogin(wantLogin)
-    return { paused: store.get('paused'), openAtLogin: openAtLogin() }
+    return { paused: store.get('paused'), meows: store.get('meows'), openAtLogin: openAtLogin() }
+  })
+
+  ipcMain.handle('cake:done', () => {
+    store.set('cakePending', false)
+    return true
+  })
+
+  ipcMain.handle('update:check', async () => {
+    const res = await checkForUpdate({ force: true })
+    return { ...res, state: await readState() }
   })
 
   ipcMain.handle('app:website', () => shell.openExternal(WEBSITE))
-  // Only real web links leave the app (an Instagram bonus, say).
+  // Only real web links leave the app (an Instagram bonus, a new version).
   ipcMain.handle('app:openUrl', (_e, url) => {
     if (typeof url === 'string' && /^https:\/\//i.test(url)) return shell.openExternal(url)
     return null
@@ -390,6 +542,12 @@ app.whenReady().then(async () => {
     store.set('openAtLoginSet', true)
   }
 
+  // Just updated? Then there's a strawberry cake waiting.
+  const version = app.getVersion()
+  const lastRun = store.get('lastRunVersion')
+  if (lastRun && compareVersions(version, lastRun) > 0) store.set('cakePending', true)
+  if (lastRun !== version) store.set('lastRunVersion', version)
+
   setupIpc()
   createOverlay()
   createPanel()
@@ -401,20 +559,41 @@ app.whenReady().then(async () => {
 
   // Coming back to the Mac: the kitty noticed.
   powerMonitor.on('unlock-screen', () => {
-    if (Date.now() - lastWalkAt > 10 * 60 * 1000) setTimeout(() => walk('idle'), 4000)
+    if (Date.now() - lastWalkAt > 10 * MIN) setTimeout(() => walk('idle'), 4000)
   })
 
   const state = await readState()
   const whenPanelLoaded = (fn) =>
     panel.webContents.isLoading() ? panel.webContents.once('did-finish-load', fn) : fn()
-  // First run: there's no name yet, so open the panel and ask for one.
-  if (!state.name) whenPanelLoaded(showPanel)
-  else setTimeout(() => walk('idle'), 8000)
+  const whenOverlayReady = (fn) => {
+    const t = setInterval(() => {
+      if (overlayReady) {
+        clearInterval(t)
+        fn()
+      }
+    }, 100)
+  }
+  if (!state.name) {
+    // First run: paw prints cross the screen, then the panel opens and
+    // the kitty is introduced.
+    whenOverlayReady(() => walk('intro'))
+    whenPanelLoaded(() => setTimeout(showPanel, TEST ? 0 : 2500))
+  } else if (state.showCake) {
+    whenPanelLoaded(showPanel)
+  } else {
+    setTimeout(() => walk('idle'), 8000)
+  }
   if (TEST) whenPanelLoaded(() => panel.show())
   scheduleWalks()
 
-  // Keep the stage and the day fresh without anyone opening the panel.
-  setInterval(() => readState().catch(() => {}), 10 * 60 * 1000)
+  setInterval(() => watchFrontApp().catch(() => {}), FRONT_POLL_MS)
+  // The update check runs at most once a day; this just looks hourly
+  // whether a day has passed.
+  setTimeout(() => checkForUpdate().catch(() => {}), TEST ? 500 : 20 * 1000)
+  setInterval(() => checkForUpdate().catch(() => {}), TEST ? 1000 : HOUR)
+
+  // Keep the level and the day fresh without anyone opening the panel.
+  setInterval(() => readState().catch(() => {}), 10 * MIN)
 })
 
 app.on('window-all-closed', (e) => e.preventDefault())
@@ -425,6 +604,21 @@ if (TEST) {
     walk: (reason) => walk(reason),
     readState: () => readState(),
     lastState: () => lastState,
-    store: () => ({ bestStage: store.get('bestStage'), name: store.get('name'), paused: store.get('paused') }),
+    store: () => ({
+      bestLevel: store.get('bestLevel'),
+      name: store.get('name'),
+      paused: store.get('paused'),
+      meows: store.get('meows'),
+      cakePending: store.get('cakePending'),
+      update: store.get('update'),
+      lastRunVersion: store.get('lastRunVersion'),
+    }),
+    setFrontApp: (id) => {
+      testFrontApp = id
+    },
+    setIdle: (s) => {
+      testIdleSeconds = s
+    },
+    watchFrontApp: () => watchFrontApp(),
   }
 }

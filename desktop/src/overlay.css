@@ -5,6 +5,7 @@
   --caramel: #be875a;
   --dusty-rose: #c98a86;
   --cream: #fbf2e4;
+  --gold: #d9a94d;
 }
 
 html,
@@ -122,23 +123,27 @@ body {
   }
 }
 
-/* Stage 1: only a shadow, slipping away. */
+/* Levels 1-2: only a shadow, slipping away. Fainter at level 1. */
 .cat--shadow svg * {
   fill: #1c1410 !important;
   stroke: #1c1410 !important;
 }
 .cat--shadow {
-  filter: blur(3px);
+  filter: blur(var(--blur, 3px));
   opacity: 0;
   animation: slip 1.8s ease-in forwards;
+}
+.cat--shadow.is-arriving {
+  animation: slip 3s ease-in forwards;
 }
 @keyframes slip {
   0% {
     opacity: 0;
     transform: translateX(0);
   }
-  25% {
-    opacity: 0.32;
+  30% {
+    opacity: var(--op, 0.3);
+    transform: translateX(0);
   }
   100% {
     opacity: 0;
@@ -146,16 +151,17 @@ body {
   }
 }
 
-/* Stage 2: ears and eyes peeking up from the bottom of the screen. */
+/* Levels 3-6: peeking up from the bottom of the screen. How far up
+   depends on the level: ear tips, then eyes, then the whole face. */
 .cat--peek {
   bottom: -120px;
   transition: transform 0.9s cubic-bezier(0.34, 1.4, 0.64, 1);
 }
 .cat--peek.is-up {
-  transform: translateY(-82px);
+  transform: translateY(calc(var(--rise, 82px) * -1));
 }
 
-/* Stage 3: the whole kitty, sitting at the bottom of the screen. */
+/* Levels 7-10: the whole kitty, sitting at the bottom of the screen. */
 .cat--visit {
   bottom: 6px;
   width: 130px;
@@ -165,7 +171,7 @@ body {
   transition: opacity 0.7s ease;
 }
 .cat--visit.is-here {
-  opacity: 1;
+  opacity: var(--op, 1);
 }
 .cat--asleep .k-eyes {
   animation: none;
@@ -192,6 +198,110 @@ body {
   }
 }
 
+/* Level 10: a ball of yarn rolls in next to the kitty. */
+.yarn {
+  position: absolute;
+  bottom: 8px;
+  width: 44px;
+  height: 44px;
+  margin-left: -22px;
+  opacity: 0;
+  transform: translateX(var(--from, 200px)) rotate(-540deg);
+  transition: transform 1.6s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.4s ease;
+}
+.yarn.is-here {
+  opacity: 1;
+  transform: none;
+}
+.yarn svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* ---------- arriving at a new level ---------- */
+
+/* The kitty materialises: out of focus and glowing, then itself. Uses
+   `scale` and `filter`, so it combines with the peek's translate. */
+.is-arriving svg {
+  animation: materialise 1.6s ease-out both;
+}
+@keyframes materialise {
+  0% {
+    filter: blur(10px) brightness(1.8);
+    scale: 0.75;
+    opacity: 0;
+  }
+  45% {
+    filter: blur(3px) brightness(1.4);
+    scale: 1.06;
+    opacity: 0.8;
+  }
+  100% {
+    filter: none;
+    scale: 1;
+    opacity: 1;
+  }
+}
+
+.burst {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+.glow {
+  position: absolute;
+  width: 180px;
+  height: 180px;
+  margin: -90px 0 0 -90px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 236, 190, 0.85) 0%, rgba(255, 220, 160, 0.35) 40%, transparent 70%);
+  animation: glow 1.8s ease-out forwards;
+}
+@keyframes glow {
+  0% {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+
+.sparkle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  background: var(--gold);
+  /* a four-pointed star */
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  opacity: 0;
+  animation: sparkle 1.3s ease-out forwards;
+}
+.sparkle:nth-child(3n) {
+  background: #fff3c4;
+}
+@keyframes sparkle {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--a)) translateY(0) scale(0.4);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--a)) translateY(calc(var(--d) * -1)) scale(1) rotate(90deg);
+  }
+}
+
+/* ---------- words ---------- */
+
 /* A little name tag, only on special walks. */
 .tag {
   position: absolute;
@@ -211,8 +321,27 @@ body {
   opacity: 1;
 }
 
+/* A meow: a speech bubble that pops up and fades. */
+.meow {
+  position: absolute;
+  transform: translate(-50%, -100%) scale(0.6);
+  background: #fffaf2;
+  color: var(--mocha);
+  font: italic 600 16px ui-serif, Georgia, serif;
+  padding: 6px 14px;
+  border-radius: 16px 16px 16px 4px;
+  border: 1px solid #e3cba5;
+  box-shadow: 0 4px 14px rgba(74, 47, 35, 0.18);
+  opacity: 0;
+  transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.meow.is-shown {
+  opacity: 1;
+  transform: translate(-50%, -100%) scale(1);
+}
+
 /* "Reduce motion": prints appear in place and fade; the kitty fades in
-   and out instead of sliding, rising or walking. */
+   and out instead of sliding, rising, walking or sparkling. */
 @media (prefers-reduced-motion: reduce) {
   .print {
     animation: print-still 5s ease-in-out forwards;
@@ -232,18 +361,26 @@ body {
   }
   .cat--shadow {
     animation: none;
-    opacity: 0.25;
+    opacity: var(--op, 0.25);
   }
   .cat--peek {
     transition: opacity 0.6s ease;
-    transform: translateY(-82px);
-    opacity: 0;
+    transform: translateY(calc(var(--rise, 82px) * -1));
   }
-  .cat--peek.is-up {
-    opacity: 1;
+  .yarn {
+    transition: opacity 0.6s ease;
+    transform: none;
   }
   .k-eyes,
-  .zzz {
+  .zzz,
+  .is-arriving svg,
+  .sparkle {
     animation: none;
+  }
+  .sparkle {
+    display: none;
+  }
+  .glow {
+    animation-duration: 0.01ms;
   }
 }

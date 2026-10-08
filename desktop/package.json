@@ -1,7 +1,7 @@
 {
   "name": "daily-chest-kitty",
   "productName": "Daily Chest Kitty",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "The Daily Chest on your Mac: today's quests in the menu bar, and an invisible kitty who leaves paw prints on your screen.",
   "private": true,
   "main": "src/main.js",
