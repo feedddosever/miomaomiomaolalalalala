@@ -1,0 +1,4 @@
+node_modules/
+dist/
+# Generated from ../.env.local at build time.
+src/config.json

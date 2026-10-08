@@ -1,5 +1,6 @@
 # The Daily Chest 🐾
 
+I made it for my boyfriend because he loves cats (just like me).
 A little single-user web app: tap today's treasure chest, get a list of
 quests to do today plus a bonus recipe or Instagram link, and keep every
 past chest you've opened in "My Treasures." Content is planned ahead of
