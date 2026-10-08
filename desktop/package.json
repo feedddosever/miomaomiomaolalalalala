@@ -1,0 +1,18 @@
+{
+  "name": "daily-chest-kitty",
+  "productName": "Daily Chest Kitty",
+  "version": "1.0.0",
+  "description": "The Daily Chest on your Mac: today's quests in the menu bar, and an invisible kitty who leaves paw prints on your screen.",
+  "private": true,
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "config": "node scripts/write-config.mjs",
+    "icons": "node scripts/make-icons.mjs",
+    "build:mac": "node scripts/write-config.mjs && node scripts/build-mac.mjs"
+  },
+  "devDependencies": {
+    "@electron/packager": "^18.3.6",
+    "electron": "44.7.0"
+  }
+}

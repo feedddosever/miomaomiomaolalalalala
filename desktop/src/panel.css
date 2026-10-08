@@ -1,0 +1,464 @@
+/* Same palette as the website, so the Mac panel feels like the same chest. */
+:root {
+  --cream: #fbf2e4;
+  --parchment: #f4e7d0;
+  --parchment-edge: #e3cba5;
+  --mocha: #4a2f23;
+  --mocha-soft: #6b4a3a;
+  --caramel: #be875a;
+  --caramel-deep: #93643a;
+  --dusty-rose: #c98a86;
+  --gold: #d9a94d;
+  --shadow: rgba(74, 47, 35, 0.18);
+  --display: ui-serif, 'New York', Georgia, serif;
+  --body: -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--cream);
+  color: var(--mocha);
+  font-family: var(--body);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  overflow-wrap: anywhere;
+}
+
+main {
+  height: 100%;
+  overflow-y: auto;
+  padding: 16px 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+h1,
+h2 {
+  font-family: var(--display);
+  margin: 0;
+  font-weight: 600;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+button:focus-visible,
+input:focus-visible,
+summary:focus-visible {
+  outline: 3px solid var(--caramel-deep);
+  outline-offset: 2px;
+}
+
+.loading,
+.note {
+  color: var(--mocha-soft);
+  text-align: center;
+  margin: auto 0;
+}
+
+/* ---------- header ---------- */
+
+.top {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.top__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.top h1 {
+  font-size: 18px;
+}
+
+.top__line {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--mocha-soft);
+  line-height: 1.4;
+}
+
+.icon-btn {
+  border: none;
+  background: none;
+  padding: 4px 6px;
+  border-radius: 8px;
+  color: var(--mocha-soft);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.icon-btn:hover {
+  background: var(--parchment);
+}
+
+/* ---------- naming ---------- */
+
+.naming {
+  margin: auto 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: center;
+  align-items: center;
+}
+
+.naming h1 {
+  font-size: 22px;
+}
+
+.naming p {
+  margin: 0;
+  color: var(--mocha-soft);
+  line-height: 1.5;
+}
+
+.naming form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.naming input {
+  width: 100%;
+  font: inherit;
+  font-size: 16px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--parchment-edge);
+  background: #fffaf2;
+  color: var(--mocha);
+  text-align: center;
+  user-select: text;
+}
+
+.btn {
+  border: none;
+  border-radius: 999px;
+  padding: 10px 18px;
+  background: var(--caramel-deep);
+  color: var(--cream);
+  font-weight: 600;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--mocha-soft);
+  border: 1px solid var(--parchment-edge);
+  font-weight: 500;
+}
+
+.error {
+  margin: 0;
+  color: #9c3b2e;
+  background: #fbe7e2;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* ---------- chest ---------- */
+
+.chest-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.missed {
+  margin: 0;
+  font-family: var(--display);
+  font-style: italic;
+  font-size: 12.5px;
+  color: var(--mocha-soft);
+  background: var(--parchment);
+  border: 1px solid var(--parchment-edge);
+  border-radius: 999px;
+  padding: 3px 12px;
+}
+
+.chest-btn {
+  border: none;
+  background: none;
+  padding: 0;
+  width: 150px;
+  border-radius: 16px;
+}
+
+.chest-btn:disabled {
+  cursor: default;
+}
+
+.chest-btn--empty {
+  opacity: 0.55;
+}
+
+.chest {
+  width: 100%;
+  display: block;
+}
+
+.chest__shadow { fill: var(--shadow); }
+.chest__body { fill: var(--caramel-deep); stroke: var(--mocha); stroke-width: 2; }
+.chest__foot { fill: var(--mocha-soft); }
+.chest__grain { stroke: var(--mocha); stroke-opacity: 0.25; stroke-width: 1.5; }
+.chest__bracket { fill: var(--gold); stroke: var(--mocha); stroke-width: 1; }
+.chest__lid-shape,
+.chest__ear { fill: var(--caramel); stroke: var(--mocha); stroke-width: 2; stroke-linejoin: round; }
+.chest__ear-inner { fill: var(--dusty-rose); }
+.chest__whisker { fill: none; stroke: var(--mocha); stroke-width: 1.4; stroke-linecap: round; opacity: 0.8; }
+.chest__nose { fill: var(--dusty-rose); stroke: var(--mocha); stroke-width: 1; }
+.chest__latch { fill: var(--gold); stroke: var(--mocha); stroke-width: 1.2; }
+
+.chest__lid {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.chest--open .chest__lid {
+  transform: rotate(-24deg) translate(-10px, -10px);
+}
+
+.chest-hint {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--mocha-soft);
+}
+
+/* ---------- quests ---------- */
+
+.card {
+  background: var(--parchment);
+  border: 1px solid var(--parchment-edge);
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+
+.card h2 {
+  font-size: 15px;
+  margin-bottom: 8px;
+}
+
+.quests {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.quest {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.paw-btn {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: none;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  color: var(--parchment-edge);
+  border-radius: 50%;
+}
+
+.paw-btn svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+  transition: transform 0.15s ease;
+}
+
+.paw-btn:hover svg {
+  transform: scale(1.1);
+  color: var(--caramel);
+}
+
+.paw-btn:active svg {
+  transform: scale(0.85);
+}
+
+.quest--done .paw-btn {
+  color: var(--caramel-deep);
+}
+
+.quest__text {
+  padding-top: 4px;
+  line-height: 1.4;
+  user-select: text;
+}
+
+.quest--done .quest__text {
+  color: var(--mocha-soft);
+  text-decoration: line-through;
+  text-decoration-color: var(--parchment-edge);
+}
+
+/* ---------- bonus ---------- */
+
+.bonus {
+  background: #fffaf2;
+  border: 1px dashed var(--parchment-edge);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.bonus__label {
+  font-size: 11px;
+  color: var(--dusty-rose);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+
+.bonus summary {
+  cursor: pointer;
+  font-family: var(--display);
+  font-weight: 600;
+  margin-top: 2px;
+  list-style: none;
+}
+
+.bonus summary::-webkit-details-marker {
+  display: none;
+}
+
+.bonus summary::after {
+  content: ' · show';
+  font-family: var(--body);
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--mocha-soft);
+}
+
+.bonus[open] summary::after {
+  content: ' · hide';
+}
+
+.bonus h3 {
+  font-size: 12px;
+  margin: 10px 0 4px;
+  color: var(--mocha-soft);
+}
+
+.bonus ul,
+.bonus ol {
+  margin: 0;
+  padding-left: 18px;
+  line-height: 1.45;
+  user-select: text;
+}
+
+.bonus li + li {
+  margin-top: 3px;
+}
+
+.link-btn {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--caramel-deep);
+  text-decoration: underline;
+}
+
+/* ---------- footer ---------- */
+
+.foot {
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--parchment-edge);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.switch {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: 999px;
+  border: none;
+  background: var(--parchment-edge);
+  padding: 0;
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+}
+
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s ease;
+}
+
+.switch[aria-checked='true'] {
+  background: var(--caramel-deep);
+}
+
+.switch[aria-checked='true']::after {
+  transform: translateX(16px);
+}
+
+.foot__row {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.foot__row .btn {
+  flex: 1;
+  padding: 7px 10px;
+  font-size: 12.5px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Once it's open, the chest steps back so the quests fit without scrolling. */
+.chest-btn[disabled]:not(.chest-btn--empty) {
+  width: 104px;
+}

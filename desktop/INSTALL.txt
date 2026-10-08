@@ -1,0 +1,31 @@
+Daily Chest Kitty — for Macs with Apple Silicon (M1, M2, M3, M4), macOS 12 or newer
+==================================================================================
+
+1. Drag "Daily Chest Kitty" into your Applications folder.
+
+2. This little app isn't signed by Apple (that needs a paid developer
+   account), so macOS needs one go-ahead the first time. Open Terminal
+   (Applications → Utilities → Terminal), paste this line and press Return:
+
+   xattr -cr "/Applications/Daily Chest Kitty.app" && codesign --force --deep --sign - "/Applications/Daily Chest Kitty.app"
+
+   Nothing will be printed. That's normal.
+
+3. Open "Daily Chest Kitty" from Applications.
+   A paw appears in the menu bar at the top of the screen. The first
+   time, the kitty will ask for a name.
+
+Using it
+--------
+• Click the paw in the menu bar for today's chest and quests. Ticks are
+  saved straight away and show up on the website too.
+• Every so often the kitty walks across the screen, leaving paw prints.
+  The prints never block clicks. The more quests get ticked, the braver
+  the kitty becomes: first only prints, then a shadow, then a peek, and
+  one day the whole kitty comes to sit at the bottom of the screen.
+• The switches at the bottom of the panel pause the paw prints and turn
+  "start when the Mac starts" on or off.
+• Right-click the paw for a small menu, including Quit.
+
+If macOS still refuses to open it: System Settings → Privacy & Security,
+scroll down, and click "Open Anyway" next to Daily Chest Kitty.

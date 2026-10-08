@@ -1,0 +1,249 @@
+/* A see-through layer over the whole screen. The window ignores the
+   mouse entirely; this file only decides what the kitty looks like. */
+:root {
+  --mocha: #4a2f23;
+  --caramel: #be875a;
+  --dusty-rose: #c98a86;
+  --cream: #fbf2e4;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+
+#stage {
+  position: fixed;
+  inset: 0;
+}
+
+/* ---------- paw prints ---------- */
+
+.print {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  /* Dark ink with a pale rim, so prints show on light and dark wallpapers. */
+  fill: rgba(74, 47, 35, 0.6);
+  stroke: rgba(255, 250, 240, 0.7);
+  stroke-width: 1.4px;
+  opacity: 0;
+  animation: print 5s ease-in-out forwards;
+}
+
+@keyframes print {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--rot)) scale(0.6);
+  }
+  8% {
+    opacity: 1;
+    transform: rotate(var(--rot)) scale(1);
+  }
+  70% {
+    opacity: 0.85;
+    transform: rotate(var(--rot)) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--rot)) scale(1);
+  }
+}
+
+/* ---------- the kitty itself ---------- */
+
+.cat {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  margin-left: -60px;
+}
+
+.cat svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.k-fur {
+  fill: var(--caramel);
+  stroke: var(--mocha);
+  stroke-width: 2.2;
+  stroke-linejoin: round;
+}
+.k-inner {
+  fill: var(--dusty-rose);
+}
+.k-eyes {
+  fill: var(--mocha);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: blink 4.5s ease-in-out 1s infinite;
+}
+.k-nose {
+  fill: var(--dusty-rose);
+  stroke: var(--mocha);
+  stroke-width: 1;
+}
+.k-whisker {
+  fill: none;
+  stroke: var(--mocha);
+  stroke-width: 1.3;
+  stroke-linecap: round;
+  opacity: 0.75;
+}
+.k-tail {
+  fill: none;
+  stroke: var(--mocha);
+  stroke-width: 9;
+  stroke-linecap: round;
+}
+.k-tail-fur {
+  fill: none;
+  stroke: var(--caramel);
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+
+@keyframes blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.1);
+  }
+}
+
+/* Stage 1: only a shadow, slipping away. */
+.cat--shadow svg * {
+  fill: #1c1410 !important;
+  stroke: #1c1410 !important;
+}
+.cat--shadow {
+  filter: blur(3px);
+  opacity: 0;
+  animation: slip 1.8s ease-in forwards;
+}
+@keyframes slip {
+  0% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+  25% {
+    opacity: 0.32;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(var(--slip, 160px));
+  }
+}
+
+/* Stage 2: ears and eyes peeking up from the bottom of the screen. */
+.cat--peek {
+  bottom: -120px;
+  transition: transform 0.9s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+.cat--peek.is-up {
+  transform: translateY(-82px);
+}
+
+/* Stage 3: the whole kitty, sitting at the bottom of the screen. */
+.cat--visit {
+  bottom: 6px;
+  width: 130px;
+  height: 150px;
+  margin-left: -65px;
+  opacity: 0;
+  transition: opacity 0.7s ease;
+}
+.cat--visit.is-here {
+  opacity: 1;
+}
+.cat--asleep .k-eyes {
+  animation: none;
+  transform: scaleY(0.12);
+}
+.zzz {
+  position: absolute;
+  top: -6px;
+  right: -4px;
+  font: 600 18px ui-serif, Georgia, serif;
+  color: var(--mocha);
+  opacity: 0.8;
+  animation: zzz 3s ease-in-out infinite;
+}
+@keyframes zzz {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.2;
+  }
+  50% {
+    transform: translateY(-10px);
+    opacity: 0.85;
+  }
+}
+
+/* A little name tag, only on special walks. */
+.tag {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  background: rgba(251, 242, 228, 0.94);
+  color: var(--mocha);
+  font: 500 13px -apple-system, system-ui, sans-serif;
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid #e3cba5;
+  box-shadow: 0 4px 14px rgba(74, 47, 35, 0.18);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+.tag.is-shown {
+  opacity: 1;
+}
+
+/* "Reduce motion": prints appear in place and fade; the kitty fades in
+   and out instead of sliding, rising or walking. */
+@media (prefers-reduced-motion: reduce) {
+  .print {
+    animation: print-still 5s ease-in-out forwards;
+    animation-delay: 0s !important;
+  }
+  @keyframes print-still {
+    0%,
+    100% {
+      opacity: 0;
+      transform: rotate(var(--rot));
+    }
+    15%,
+    70% {
+      opacity: 0.8;
+      transform: rotate(var(--rot));
+    }
+  }
+  .cat--shadow {
+    animation: none;
+    opacity: 0.25;
+  }
+  .cat--peek {
+    transition: opacity 0.6s ease;
+    transform: translateY(-82px);
+    opacity: 0;
+  }
+  .cat--peek.is-up {
+    opacity: 1;
+  }
+  .k-eyes,
+  .zzz {
+    animation: none;
+  }
+}
